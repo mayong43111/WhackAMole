@@ -14,18 +14,18 @@ function ns.UI.GetOptionsTable(WhackAMole)
     -- 1. Profile Selection & Documentation (Group)
     args["profiles"] = {
         type = "group",
-        name = "Profile Selection",
+        name = "配置选择",
         order = 1,
         args = {
             select_header = {
                 type = "header",
-                name = "Choose Logic",
+                name = "选择逻辑",
                 order = 1
             },
             profile_select = {
                 type = "select",
-                name = "Active Profile",
-                desc = "Select your specialization logic.",
+                name = "当前配置",
+                desc = "选择您的专精逻辑。",
                 order = 2,
                 width = "full",
                 values = function()
@@ -33,7 +33,7 @@ function ns.UI.GetOptionsTable(WhackAMole)
                      for _, p in ipairs(profiles) do
                          t[p.id] = p.name
                      end
-                     if next(t) == nil then t["none"] = "None" end
+                     if next(t) == nil then t["none"] = "无" end
                      return t
                 end,
                 get = function() return WhackAMole.db.char.activeProfileID end,
@@ -58,7 +58,7 @@ function ns.UI.GetOptionsTable(WhackAMole)
             },
             doc_header = {
                 type = "header",
-                name = "Manual & Tips",
+                name = "手册与提示",
                 order = 10
             },
             documentation = {
@@ -66,11 +66,11 @@ function ns.UI.GetOptionsTable(WhackAMole)
                 name = function()
                     local p = ns.ProfileManager:GetProfile(WhackAMole.db.char.activeProfileID)       
                     if p then
-                        local text = p.meta.docs or p.meta.desc or "No documentation."
+                        local text = p.meta.docs or p.meta.desc or "无文档。"
                         text = text:gsub("|", "||")
                         return text
                     end
-                    return "Select a profile to view documentation."
+                    return "选择一个配置以查看文档。"
                 end,
                 fontSize = "medium",
                 order = 11
@@ -81,14 +81,14 @@ function ns.UI.GetOptionsTable(WhackAMole)
     -- 2. Settings
     args["settings"] = {
         type = "group",
-        name = "Settings",
+        name = "设置",
         order = 2,
         args = {
-             header_ui = { type = "header", name = "Interface", order = 1 },
+             header_ui = { type = "header", name = "界面", order = 1 },
              lock = {
                  type = "toggle",
-                 name = "Lock Frame",
-                 desc = "Unlock to move the action bar.",
+                 name = "锁定框架",
+                 desc = "解锁以移动动作条。",
                  get = function() return ns.UI.Grid.locked end,
                  set = function(_, val) 
                      ns.UI.Grid:SetLock(val) 
@@ -97,11 +97,11 @@ function ns.UI.GetOptionsTable(WhackAMole)
                  width = "full",
                  order = 2
              },
-             header_audio = { type = "header", name = "Audio", order = 10 },
+             header_audio = { type = "header", name = "音频", order = 10 },
              enable_audio = {
                  type = "toggle",
-                 name = "Enable Sound Cues",
-                 desc = "Play sounds for key abilities.",
+                 name = "启用声音提示",
+                 desc = "为关键技能播放声音。",
                  get = function() return WhackAMole.db.global.audio.enabled end,
                  set = function(_, val) WhackAMole.db.global.audio.enabled = val end,
                  width = "full",
@@ -109,8 +109,8 @@ function ns.UI.GetOptionsTable(WhackAMole)
              },
              clear_assigns = {
                  type = "execute",
-                 name = "Clear Keybindings",
-                 desc = "Clear all drag-and-dropped spells from the grid.",
+                 name = "清除按键绑定",
+                 desc = "清除网格中所有拖放的技能。",
                  func = function() ns.UI.Grid:ClearAllAssignments() end,
                  order = 20
              }
@@ -120,7 +120,7 @@ function ns.UI.GetOptionsTable(WhackAMole)
     -- 3. About
     args["about"] = {
         type = "group",
-        name = "About",
+        name = "关于",
         order = 3,
         args = {
             title = {
@@ -131,7 +131,7 @@ function ns.UI.GetOptionsTable(WhackAMole)
             },
             version = {
                 type = "description",
-                name = "Version: 1.1 (Titan-Forged Edition)\n\nDesigned for WotLK 3.3.5a.",    
+                name = "版本: 1.1 (泰坦造物版)\n\n专为 WotLK 3.3.5a 设计。",    
                 fontSize = "medium",
                 order = 2
             }
@@ -139,7 +139,7 @@ function ns.UI.GetOptionsTable(WhackAMole)
     }
 
     return {
-        name = "WhackAMole Options",
+        name = "WhackAMole 选项",
         handler = WhackAMole, -- Keep Handler for future extensions
         type = "group",
         childGroups = "tree", -- Root is a Tree (List on left)

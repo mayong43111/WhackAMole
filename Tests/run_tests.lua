@@ -13,3 +13,6 @@ runner_utils:Run()
 
 local runner_spec = require("Tests.Test_SpecDetection")
 runner_spec:Run()
+
+local runner_parser = require("Tests.Test_SimCParser")
+runner_parser:Run()

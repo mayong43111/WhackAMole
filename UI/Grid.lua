@@ -122,9 +122,9 @@ end
 -- Open Context Menu
 function ns.UI.Grid:OpenContextMenu(anchor)
     local menu = {
-        { text = "WhackAMole Options", isTitle = true, notCheckable = true },
+        { text = "WhackAMole 选项", isTitle = true, notCheckable = true },
         { 
-            text = locked and "Unlock Frame" or "Lock Frame",
+            text = locked and "解锁框架" or "锁定框架",
             func = function() 
                 self:SetLock(not locked) 
                 LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
@@ -132,16 +132,16 @@ function ns.UI.Grid:OpenContextMenu(anchor)
             notCheckable = true
         },
         {
-            text = "Clear Action Bar",
+            text = "清空动作条",
             func = function() self:ClearAllAssignments() end,
             notCheckable = true
         },
         { 
-            text = "Configure ...",
+            text = "设置 ...",
             func = function() LibStub("AceConfigDialog-3.0"):Open("WhackAMole") end,
             notCheckable = true
         },
-        { text = "Cancel", notCheckable = true, func = function() end }
+        { text = "取消", notCheckable = true, func = function() end }
     }
     
     local menuFrame = _G.WhackAMoleContextMenu
@@ -294,7 +294,18 @@ function ns.UI.Grid:Create(layout, config)
             btn.color = slotDef.color
             btn.slotId = i
             
-            -- Scripts
+             -- NEW: Store Action (snake_case) on button if provided
+            if slotDef.action then
+                btn.action = slotDef.action
+                -- If ID is missing but Action is provided, try to resolve it via Global Mapping
+                if (not slotDef.id) and ns.ActionMap and ns.ActionMap[slotDef.action] then
+                    slotDef.id = ns.ActionMap[slotDef.action]
+                end
+            end
+            
+            local _, _, hintIcon = GetSpellInfo(slotDef.id)
+            btn.ghost:SetTexture(hintIcon or "Interface\\Icons\\INV_Misc_QuestionMark")
+
             btn:SetScript("OnReceiveDrag", function(self)
                 local type, id, subType = GetCursorInfo()
                 if type == "spell" then
@@ -338,7 +349,7 @@ function ns.UI.Grid:Create(layout, config)
 end
 
 -- Visual Update for OnUpdate loop
-function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot)
+function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot, activeAction)
     for i, btn in pairs(slots) do
         local spellName = btn:GetAttribute("spell")
         
@@ -369,7 +380,19 @@ function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot)
         end
 
         -- Highlights
-        if i == activeSlot then
+        local shouldGlow = false
+        
+        -- 1. Try matching by SimC Action Name
+        if activeAction and btn.action and btn.action == activeAction then
+            shouldGlow = true
+        end
+
+        -- 2. Fallback: Match by Slot ID (Legacy)
+        if (not shouldGlow) and (i == activeSlot) then
+            shouldGlow = true
+        end
+
+        if shouldGlow then
             LCG.AutoCastGlow_Stop(btn) 
             local c = {1, 0.8, 0, 1} 
             LCG.PixelGlow_Start(btn, c, nil, -0.25, nil, 3)

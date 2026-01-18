@@ -9,7 +9,7 @@ local buff_cache = {}
 local debuff_cache = {}
 
 -- Helper to create a dummy "down" state
-local aura_down = { up = false, count = 0, remains = 0, duration = 0 }
+local aura_down = { up = false, down = true, count = 0, remains = 0, duration = 0 }
 
 -- =========================================================================
 -- Buff / Debuff Metatables
@@ -49,12 +49,18 @@ local mt_buff = {
             -- (Optimization: could use a shared temp table to avoid GC churn)
             return {
                 up = true,
+                down = false,
                 count = aura.count,
                 remains = remains,
                 duration = aura.duration
             }
         end
         return aura
+    end,
+    __index = function(t, k)
+        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
+             return t(ns.ActionMap[k])
+        end
     end
 }
 
@@ -70,12 +76,18 @@ local mt_debuff = {
             
             return {
                 up = true,
+                down = false,
                 count = aura.count,
                 remains = remains,
                 duration = aura.duration
             }
         end
         return aura
+    end,
+    __index = function(t, k)
+        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
+             return t(ns.ActionMap[k])
+        end
     end
 }
 
@@ -107,8 +119,16 @@ local mt_spell = {
         return {
             usable = usable,
             ready = ready,
-            cooldown_remains = remains
+            cooldown_remains = remains,
+            -- SimC Aliases
+            up = ready,
+            remains = remains
         }
+    end,
+    __index = function(t, k)
+        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
+             return t(ns.ActionMap[k])
+        end
     end
 }
 
@@ -118,19 +138,23 @@ local mt_spell = {
 
 state.now = 0 -- Virtual Time
 
+state.spell = setmetatable({}, mt_spell)
+state.cooldown = state.spell
+
 state.player = {
     buff = setmetatable({}, mt_buff),
     power = { rage = { current = 0 } },
     moving = false
 }
+state.buff = state.player.buff
 
 state.target = {
     debuff = setmetatable({}, mt_debuff),
     health_pct = 0,
     time_to_die = 99
 }
+state.debuff = state.target.debuff
 
-state.spell = setmetatable({}, mt_spell)
 
 state.active_enemies = 1
 
@@ -149,6 +173,7 @@ local function ScanAuras(unit, cache, filter)
         if spellId then
             local aura = {
                 up = true,
+                down = false,
                 count = count,
                 -- Store RAW expiration time to allow virtualization
                 expires = (expirationTime == 0) and 0 or expirationTime, 
@@ -167,7 +192,15 @@ function state.reset()
 
     -- 1. Snapshot Player Stats
     state.player.power.rage.current = UnitPower("player", 1) -- 1=Rage
+    
+    -- SimC Aliases (Direct access for conditions like 'rage > 10')
+    state.rage = state.player.power.rage.current
+    state.mana = UnitPower("player", 0)
+    state.energy = UnitPower("player", 3)
+    state.runic = UnitPower("player", 6)
+    
     state.player.moving = GetUnitSpeed("player") > 0
+    state.player.combat = UnitAffectingCombat("player")
     state.active_enemies = 1 -- Placeholder
     
     -- 2. Snapshot Target Stats
@@ -176,8 +209,20 @@ function state.reset()
         local max = UnitHealthMax("target")
         state.target.health_pct = (max > 0) and ((hp / max) * 100) or 0
         state.target.time_to_die = 99 -- Placeholder
+        
+        -- Range Check (Approximate for WotLK)
+        if CheckInteractDistance("target", 3) then -- < 10y (Duel)
+            state.target.range = 5
+        elseif CheckInteractDistance("target", 2) then -- < 11.11y (Trade)
+            state.target.range = 10
+        elseif CheckInteractDistance("target", 1) then -- < 28y (Inspect)
+            state.target.range = 25
+        else
+            state.target.range = 40
+        end
     else
         state.target.health_pct = 0
+        state.target.range = 100
     end
     
     -- 3. Snapshot Auras (Efficiency: Scan once per frame)
@@ -187,6 +232,11 @@ function state.reset()
     else
         wipe(debuff_cache)
     end
+
+    -- 4. Set SimC Aliases
+    state.buff = state.player.buff
+    state.debuff = state.target.debuff
+    state.cooldown = state.spell -- Aliasing Spell checks as Cooldown checks (SimC style)
 end
 
 function state.advance(seconds)

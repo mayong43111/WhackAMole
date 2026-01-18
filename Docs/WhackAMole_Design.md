@@ -1,4 +1,4 @@
-# WhackAMole - 插件设计文档 v1.1
+# WhackAMole - 插件设计文档 v1.2
 
 ## 1. 产品愿景 (Product Vision)
 WhackAMole 是一个可视化的输出循环辅助插件。它不直接显示“下一个技能图标”，而是**高亮玩家现有动作条中的特定位置**（或者插件自带的独立动作条）。
@@ -12,16 +12,23 @@ WhackAMole 是一个可视化的输出循环辅助插件。它不直接显示“
     *   插件内核计算出当前应该施放什么技能。
     *   **Visual**: UI 寻找该技能对应的格子，触发 **Glow Effect (边缘发光动画)**。
     *   **Audio (Voice Alerts)**: 如果预测结果发生了变化。
-        *   **内置映射**: 插件内置所有技能的语音文件（类似于 GladiatorlosSA 或 DBM-Voice）。通过 `SpellID` 可播放 `Sounds/*.ogg`。
+        *   **内置映射**: 插件在 `Core/Constants.lua` 集中管理所有法术音频。支持 `ns.ID.SpellName` 反向查找。
         *   不支持在 Profile 中自定义每个技能的语音，以保持配置简洁。
 
-### 2.2 逻辑内核 (Logic Core - The "Engine")
-*   **解耦设计**: 引擎**不包含**任何硬编码的输出手法。它只是一个解释器。
+### 2.2 逻辑内核 (Logic Core - APL Engine)
+*   **APL (Action Priority List) System**: 采用 SimC 风格的优先级列表作为核心驱动。
+    *   **SimC Engine**: 引擎不再执行 Raw Lua 脚本，而是解析一个有序的动作列表 (Action List)。
+    *   **Parser & Compiler**:
+        *   参考 Hekili 的实现，并在加载时将 SimC 文本 (e.g., `actions+=/stormstrike,if=cooldown.remains=0`) 编译为 Lua 函数。
+        *   这样做既保留了高性能 (编译后本质上还是 Lua Function)，又大大降低了用户编写逻辑的门槛。
+*   **Mapping Strategy (映射策略)**:
+    *   **Action Name**: 每个动作都有一个唯一标识符 (SimC Name, e.g., `lava_lash`, `earth_shock`).
+    *   **Slot Mapping**: Profile 中不再只是简单的 `SpellID -> Slot`，而是建立 `SimC Name -> Slot(s)` 的索引。
+    *   **Broadcast**: 当引擎决定 "推荐施放 Lava Lash" 时，它会查找所有绑定了 `lava_lash` 的格子并点亮。
 *   **Virtual Time (虚拟时间)**:
     *   引擎不再直接调用 `GetTime()`。而是依赖 `state.now`。
     *   **Time Travel**: 允许引擎通过 `state.advance(seconds)` "快进"时间。这使得我们可以模拟"当前正在读条的技能施放完毕后"的世界状态，从而提前预测下一个技能。
 *   **Sandbox**: 提供 `player.buff(id).remains` 等 API。这些 API 会自动根据 `state.now` 计算剩余时间，而不是真实时间。
-*   **Decision Tree**: 引擎遍历导入的脚本，返回决策结果 —— 但决策结果不是 `SpellID`，而是 `SlotID` (槽位ID)。
 
 ### 2.3 数据交换层 (Import/Export Layer)
 *   所有配置（逻辑脚本 + 槽位定义）被压缩为一个字符串。
@@ -39,7 +46,7 @@ graph TD
     
     subgraph "Core Engine"
         ProfileManager -->|Load Layout| UIGrid
-        ProfileManager -->|Load Script| LogicSandbox
+        ProfileManager -->|Compile SimC APL| LogicSandbox
         WoWEvent[WoW Events] -->|Update State| LogicSandbox
         LogicSandbox -->|Decision: SlotID| UIGrid
     end
@@ -52,51 +59,54 @@ graph TD
 ## 4. 数据结构设计 (Data Structures)
 
 ### 3.1 核心配置对象 (The Profile)
-这是一个可导出的 Table 结构：
+这是一个可导出的 Table 结构，采用 SimC APL 驱动：
 
 ```lua
 {
     -- 元数据：定义配置的基本信息
     meta = {
-        name = "WotLK 武器战 (Titan-Forged)",
+        name = "WotLK 增强萨满 (Titan-Forged)",
         author = "WhackAMole Copilot",
-        version = 1,
-        class = "WARRIOR",
-        spec = 71, -- Arms (Weapon)
-        date = "2026-01-17",
-        desc = "一个示例"
+        version = 2, -- V2 for APL support
+        class = "SHAMAN",
+        spec = 263, -- Enhancement
+        date = "2026-01-18",
+        desc = "SimC 移植示例"
     },
 
-    -- 布局定义：定义界面上显示哪些技能槽位
-    -- 为了模拟肌肉记忆，我们不仅显示'下一个技能'，而是高亮技能所在的固定位置
+    -- 布局定义：定义 Action Name 到 Grid Slot 的映射
+    -- "action" 字段对应 SimC 中的动作名。
+    -- 运行时，插件会自动查表将 action (e.g. "stormstrike") 转换为 SpellID (17364) 以显示图标和Tooltip。
     layout = {
         rows = 1,
         cols = 6,
         slots = {
-            -- Slot 1: 致死打击 (核心循环) - 黄色
-            [1] = { 
-                type = "spell", 
-                id = 12294, -- Mortal Strike 
-                color = "FFD700", 
-                tooltip = "致死打击: 卡CD使用" 
-            },
-           -- ...
+            -- Slot 1: 风暴打击 (对应 APL 中的 stormstrike)
+            [1] = { action = "stormstrike" },
+            -- Slot 2: 熔岩猛击
+            [2] = { action = "lava_lash" },
+            -- Casting Slot
+            [3] = { action = "lightning_bolt" },
+            -- ...
         }
     },
 
-    -- 逻辑脚本：Lua代码，每一帧(或每次事件)运行一次
-    -- 返回值: SlotID (要高亮的槽位索引) 或 nil
-    script = [[
-        -- 引入环境 API
-        local target = env.target
-        local player = env.player
-        local spell = env.spell
-       
-        -- ... logic ...
-
-        -- 如果没有技能可用，返回 nil (不点亮任何格子)
-        return nil
-    ]]
+    -- 优先级列表 (APL)
+    -- 这是一个有序列表，引擎从上到下遍历。
+    -- 支持两种格式：
+    -- 1. 解析后的 Table (性能更好，加载快)
+    -- 2. 原始 SimC 字符串 (需运行时解析)
+    apl = {
+        -- 优先处理高优先级技能
+        { action = "wind_shear", condition = "target.casting" },
+        { action = "shamanistic_rage", condition = "mana.pct<30" },
+        
+        -- 循环主体 (示例)
+        "actions+=/stormstrike,if=debuff.stormstrike.down",
+        "actions+=/lava_lash,if=cooldown.lava_lash.ready",
+        "actions+=/earth_shock,if=buff.stormstrike.up",
+        "actions+=/lightning_shield,if=buff.lightning_shield.down",
+    }
 }
 ```
 
@@ -114,10 +124,11 @@ graph TD
 
 ### 5.2 战斗流程
 1.  `OnUpdate` 循环触发引擎。
-2.  引擎运行 `script`。
-3.  脚本返回 `return 2`。
-4.  UI 层查找 Slot 2 对应的 Frame。
-5.  在 Frame 边缘绘制金色呼吸灯发光 (`LibCustomGlow`)。
+2.  **Snapshot**: 引擎获取当前状态 (`GetTime`, Buffs, Cooldowns)。
+3.  **Evaluate**: 引擎遍历 APL 列表，执行 Lua-compiled 条件。
+4.  **Decision**: 命中第一条满足条件的 Action (e.g., "lava_lash")。
+5.  **Lookup**: 查找绑定了 "lava_lash" 的所有 Slot (e.g., Slot 2)。
+6.  **Highlight**: UI 层查找 Slot 2 对应的 Frame，绘制金色呼吸灯发光。
 
 ---
 
@@ -185,22 +196,28 @@ graph TD
 *   `embeds.xml`: 引用所有第三方库。
 
 ### Core/ (核心代码)
-*   `Core/Constants.lua`: 全局常量（如 ClassID, SpecID 枚举）。
+*   `Core/SpecDetection.lua`: **[New]** 专精检测模块，提供 `ns.SpecDetection:GetSpecID()`。
+*   `Core/Constants.lua`: **[New]** 全局常量 (ClassID, SpecID, Spells)。数据中心，包含音频和法术 ID 定义。
 *   `Core/Utils.lua`: 通用工具函数。
 *   `Core/Serializer.lua`: 处理字符串的压缩、解压、校验逻辑 (Import/Export, LibDeflate + LibBase64)。
 *   `Core/ProfileManager.lua`: 管理配置文件的加载、存储、默认预设。
 
 ### Engine/ (逻辑引擎)
 *   `Engine/State.lua`: **核心状态机**。实现"虚拟时间"(Virtual Time)机制。支持 `state.now` 和 `state.advance(seconds)` 以进行未来预测模拟。
-*   `Engine/ScriptExecutor.lua`: (规划中) 负责安全执行 (`pcall`) 用户导入的 Lua 脚本。
+*   `Engine/SimCParser.lua`: **[New]** 负责将 SimC 文本解析并编译为 Lua Function。
+*   `Engine/APLExecutor.lua`: 负责在运行时遍历 APL 并执行条件检查。
 
 ### Classes/ (职业模块)
 *   `Classes/Mage.lua`: 法师逻辑。
 *   `Classes/DeathKnight.lua`: DK 逻辑。
 
 ### UI/ (界面层)
-*   `UI/UI.lua`: 负责绘制主动作条网格 (Grid) 和 Glow 效果。
-*   `UI/Options.lua`: 配置面板逻辑 (AceConfig-3.0)。
+*   `UI/Grid.lua`: **[New]** 负责绘制主动作条网格 (Grid) 和 Glow 效果。
+*   `UI/Options.lua`: **[New]** 配置面板逻辑 (AceConfig-3.0)。
+
+### Tests/ (单元测试)
+*   `Tests/run_tests.lua`: 测试入口。
+*   `Tests/MockWoW.lua`: WoW API 模拟器。
 
 ### Locales/ (本地化)
 *   `Locales/enUS.lua`
@@ -217,6 +234,10 @@ graph TD
 ## 10. 开发状态与未来计划 (Development Status & Roadmap)
 
 ### 已完成功能 (Implemented)
+-   **重构 (Refactoring)**:
+    - **MVC架构**: 成功分离了 `Core`, `UI`, `SpecDetection`, `Options`。
+    - **数据统一**: `Core/Constants.lua` 现在是整个职业法术 ID 和音频的单一数据源。
+    - **代码注入 (Injection)**: 实现了 Scheme A，自动将 `S_SpellName` 变量注入用户脚本，消除魔法数字。
 -   **品牌重塑**: 项目正式更名为 **WhackAMole (打地鼠)**，并完成所有代码引用替换。
 -   **核心架构**: 基于 Hekili 优化的状态机，针对 WotLK 3.3.5a 修复了 `UnitAura` 返回值问题。
 -   **基础 UI**: 
@@ -231,9 +252,10 @@ graph TD
 -   **工程化与部署**:
     - 自动化发布脚本 (`publish.ps1`)，支持 `.env` 配置与文件过滤。
     - 完成 GitHub 仓库初始化与代码推送。
+    - **单元测试**: 新增 `Tests/` 目录和 `MockWoW.lua`，支持本地 Lua 5.1 运行单元测试。
 -   **文档与本地化**:
     - `README.md` 全文中文化。
-    - 设计文档同步更新至 v1.1。
+    - 设计文档同步更新至 v1.2。
 
 ### 未来计划 (Future Roadmap)
 1.  **Web 编辑器**: 开发在线工具，允许用户在网页端可视化编辑布局和逻辑，生成导入字符串。

@@ -109,11 +109,12 @@ function WhackAMole:InitializeProfile(currentSpec)
     
     if savedID then
         local p = ns.ProfileManager:GetProfile(savedID)
-        -- Validate spec match
-        if p and (p.meta.spec == currentSpec or currentSpec == 0) then
+        -- Validate spec match (nil spec means "universal")
+        if p and (p.meta.spec == nil or p.meta.spec == currentSpec or currentSpec == 0) then
             profile = p
         else
-             if p then self:Print("Spec changed ("..p.meta.spec.."->"..currentSpec.."). Switching profile.") end
+             local oldSpec = p and p.meta.spec or "nil"
+             if p then self:Print("Spec changed ("..oldSpec.."->"..currentSpec.."). Switching profile.") end
         end
     end
     
@@ -143,8 +144,17 @@ function WhackAMole:SwitchProfile(profile)
     self.currentProfile = profile
     -- 1. Create/Resize Grid
     ns.UI.Grid:Create(profile.layout, CONFIG)
-    -- 2. compile Script
-    self:CompileScript(profile.script)
+    
+    -- 2. Compile APL
+    if profile.apl then
+        self:CompileAPL(profile.apl)
+    elseif profile.script then
+        -- Legacy Support
+        self:CompileScript(profile.script)
+    else
+        self:Print("Error: No actionable logic (APL/Script) in profile.")
+    end
+    
     -- 3. Notify Config
     LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
 end
@@ -152,6 +162,28 @@ end
 -- =========================================================================
 -- Logic Engine (Interpreter)
 -- =========================================================================
+
+function WhackAMole:CompileAPL(aplLines)
+    self.compilingAPL = true
+    self.currentAPL = {}
+    
+    if not ns.SimCParser then
+        self:Print("Error: SimCParser module not found!")
+        return
+    end
+
+    for _, line in ipairs(aplLines) do
+        local entry = ns.SimCParser.ParseActionLine(line)
+        if entry then
+            table.insert(self.currentAPL, entry)
+        else
+            -- self:Print("Warning: Failed to parse APL line: " .. line)
+        end
+    end
+    
+    self.logicFunc = nil -- clear legacy
+    self:Print("APL Compiled. " .. #self.currentAPL .. " actions loaded.")
+end
 
 function WhackAMole:CompileScript(scriptBody)
     -- Build ID injection string from Constants
@@ -175,6 +207,7 @@ function WhackAMole:CompileScript(scriptBody)
         self.logicFunc = nil
     else
         self.logicFunc = func
+        self.currentAPL = nil -- clear APL
         -- self:Print("Rotation logic compiled successfully.")
     end
 end
@@ -188,54 +221,46 @@ function WhackAMole:OnUpdate(elapsed)
     if self.timeSinceLastUpdate < CONFIG.updateInterval then return end
     self.timeSinceLastUpdate = 0
 
-    if not self.logicFunc then return end
+    if (not self.logicFunc) and (not self.currentAPL) then return end
     
     -- 1. Snapshot State (Virtual Time Start)
-    ns.State.reset()
+    if ns.State.reset then ns.State.reset() end
     
-    -- 2. Run Logic (NOW)
-    local status, activeSlot = pcall(self.logicFunc, ns.State)
-    if not status then 
-        -- In dev, maybe print error once? For MVP, fail silently to avoid spam
-        activeSlot = nil 
-    end
-    
-    -- 3. Prediction (Time Travel)
-    local nextSlot = nil
-    
-    -- Check Casting
-    local name, _, _, _, endTime = UnitCastingInfo("player")
-    if not name then name, _, _, _, endTime = UnitChannelInfo("player") end
-    
-    if name and endTime then
-        local now = GetTime()
-        local finish = endTime / 1000
-        local delta = finish - now
-        
-        if delta > 0.1 then
-            ns.State.advance(delta) -- Travel forward
-            local status2, result2 = pcall(self.logicFunc, ns.State)
-            if status2 and result2 ~= activeSlot then
-                nextSlot = result2
-            end
-        end
-    end
+    local activeAction = nil
+    local activeSlot = nil
 
-    -- 4. Audio Feedback
-    if self.db.global.audio.enabled then
-        local soundSlot = nextSlot or activeSlot
-        if soundSlot and self.currentProfile and self.currentProfile.layout.slots[soundSlot] then
-            local slotDef = self.currentProfile.layout.slots[soundSlot]
-            -- Use new Unified Constants if available, or raw ID
-            if slotDef.id then
-                ns.Audio:Play(slotDef.id)
-            end
+    -- 2. Run Logic
+    if self.currentAPL then
+        if ns.APLExecutor then
+            activeAction = ns.APLExecutor.Process(self.currentAPL, ns.State)
         end
+    elseif self.logicFunc then
+         -- Legacy
+        local status, result = pcall(self.logicFunc, ns.State)
+        if status then activeSlot = result end
     end
     
-    -- 5. Visual Feedback
-    -- Delegated to UI module
-    ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot)
+    -- 3. Update Visuals
+    -- Grid expects: (activeSlot, nextSlot, activeAction)
+    if ns.UI.Grid then
+        ns.UI.Grid:UpdateVisuals(activeSlot, nil, activeAction)
+    end
+    
+    -- 4. Audio Feedback (Simple: Logic on Current only for now)
+    if self.db.global.audio.enabled then
+        -- Requires mapping Action Name -> ID if using APL
+        local soundID = nil
+        
+        if activeAction and ns.ActionMap then
+             soundID = ns.ActionMap[activeAction]
+        elseif activeSlot and self.currentProfile and self.currentProfile.layout.slots[activeSlot] then
+             soundID = self.currentProfile.layout.slots[activeSlot].id
+        end
+
+        if soundID then
+            ns.Audio:Play(soundID)
+        end
+    end
 end
 
 -- Register OnUpdate on a dedicated frame? 

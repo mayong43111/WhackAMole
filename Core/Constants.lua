@@ -24,6 +24,8 @@ ns.Spells = {
     [871]    = { key = "ShieldWall",          sound = "ShieldWall.ogg" },          -- 盾墙
     [12975]  = { key = "LastStand",           sound = "LastStand.ogg" },           -- 破釜沉舟
     [2565]   = { key = "ShieldBlock",         sound = "ShieldBlock.ogg" },         -- 盾牌格挡
+    [6673]   = { key = "BattleShout",         sound = "BattleShout.ogg" },         -- 战斗怒吼
+    [6343]   = { key = "ThunderClap",         sound = "ThunderClap.ogg" },         -- 雷霆一击
     [676]    = { key = "Disarm",              sound = "Disarm.ogg" },              -- 缴械
     [6552]   = { key = "Pummel",              sound = "Pummel.ogg" },              -- 拳击
     [23920]  = { key = "SpellReflection",     sound = "SpellReflection.ogg" },     -- 法术反射
@@ -42,6 +44,8 @@ ns.Spells = {
     [20243]  = { key = "Devastate",           sound = "Devastate.ogg" },           -- 毁灭打击
     [12809]  = { key = "ConcussionBlow",      sound = "ConcussionBlow.ogg" },      -- 震荡猛击
     [78]     = { key = "HeroicStrike",        sound = "HeroicStrike.ogg" },        -- 英勇打击
+    [52437]  = { key = "SuddenDeath" },                                            -- 猝死 (Buff)
+    [46916]  = { key = "Bloodsurge" },                                             -- 猛击! (Buff)
 
     -- ---------------------------------------------------------------
     -- DEATH KNIGHT (死亡骑士)
@@ -131,6 +135,10 @@ ns.Spells = {
     [55342]  = { key = "MirrorImage",         sound = "MirrorImage.ogg" },         -- 镜像
     [42873]  = { key = "FireBlast",           sound = "FireBlast.ogg" },           -- 火焰冲击
     [42950]  = { key = "DragonsBreath",       sound = "DragonsBreath.ogg" },       -- 龙息术
+    [48108]  = { key = "HotStreak" },                                              -- 炎爆术! (Buff)
+    [22959]  = { key = "ImprovedScorch" },
+    [17800]  = { key = "ShadowMastery" },
+    [12579]  = { key = "WintersChill" },
 
     -- ---------------------------------------------------------------
     -- WARLOCK (术士)
@@ -156,9 +164,22 @@ ns.Spells = {
 
 ns.ID = {}
 
+-- Helper to convert CamelCaseOnly to snake_case_only
+local function CamelToSnake(str)
+    -- Insert underscore before capital letters (except the first one)
+    local s = str:gsub("(%l)(%u)", "%1_%2")
+    return s:lower()
+end
+ns.CamelToSnake = CamelToSnake
+
+ns.ActionMap = {} -- For SimC mapping
+
 for id, data in pairs(ns.Spells) do
     if data.key then
         ns.ID[data.key] = id
+        
+        -- Create snake_case action alias
+        local snake = CamelToSnake(data.key)
+        ns.ActionMap[snake] = id
     end
 end
-
