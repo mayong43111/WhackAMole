@@ -1,0 +1,35 @@
+## Interface: 30403
+## Title: WhackAMole (打地鼠)
+## Notes: Whac-A-Mole Rotation Helper
+## Author: WhackAMole Dev
+## Version: 0.2-MVP
+## SavedVariables: WhackAMoleDB
+
+# Libraries
+embeds.xml
+
+# Utilities
+Utils.lua
+
+# Class Detection
+Classes\Registry.lua
+Classes\Warrior.lua
+Classes\Paladin.lua
+Classes\DeathKnight.lua
+Classes\Mage.lua
+
+# Engine
+Engine\State.lua
+
+# Core
+Core\ProfileManager.lua
+Core\Serializer.lua
+Core\SoundMapping.lua
+Core\Audio.lua
+Core.lua
+
+# Presets (Built-in)
+Presets\Warrior_Arms.lua
+Presets\Warrior_Fury.lua
+Presets\Warrior_Prot.lua
+Presets\Mage_Fire.lua
