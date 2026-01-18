@@ -52,7 +52,7 @@ if (-not (Test-Path $destDir)) {
 }
 
 # Exclude list
-$excludeItems = @(".git", ".iconr", ".env", ".vscode", "Docs", "publish.ps1", "README.md", ".gitignore")
+$excludeItems = @(".git", ".iconr", ".env", ".vscode", "Docs", "Tests", "publish.ps1", "README.md", ".gitignore")
 
 Get-ChildItem -Path $sourceDir | Where-Object { 
     $excludeItems -notcontains $_.Name 

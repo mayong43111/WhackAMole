@@ -1,11 +1,8 @@
 local _, ns = ...
 
-local S_Bloodthirst = 23881
-local S_Whirlwind = 1680
-local S_Slam = 1464
-local S_Execute = 5308
-local S_VictoryRush = 34428
-local S_InstantSlamProc = 46916 -- Bloodsurge
+-- IDs managed by Core/Constants.lua
+-- Access via ns.ID.SpellName
+
 
 ns.ProfileManager:RegisterPreset({
     meta = {
@@ -19,11 +16,11 @@ ns.ProfileManager:RegisterPreset({
     
     layout = {
         slots = {
-            [1] = { int_id = 1, id = S_Bloodthirst }, -- BT
-            [2] = { int_id = 2, id = S_Whirlwind },   -- WW
-            [3] = { int_id = 3, id = S_Slam },        -- Slam (Instant)
-            [4] = { int_id = 4, id = S_Execute },     -- Execute
-            [5] = { int_id = 5, id = S_VictoryRush }  -- VR (Free heal/dmg)
+            [1] = { int_id = 1, id = ns.ID.Bloodthirst }, -- BT
+            [2] = { int_id = 2, id = ns.ID.Whirlwind },   -- WW
+            [3] = { int_id = 3, id = ns.ID.Slam },        -- Slam (Instant)
+            [4] = { int_id = 4, id = ns.ID.Execute },     -- Execute
+            [5] = { int_id = 5, id = ns.ID.VictoryRush }  -- VR (Free heal/dmg)
         }
     },
     
@@ -34,13 +31,10 @@ ns.ProfileManager:RegisterPreset({
         local buff = player.buff
         local debuff = target.debuff
 
-        local S_Bloodthirst = 23881
-        local S_Whirlwind = 1680
-        local S_Slam = 1464
-        local S_Execute = 5308
-        local S_VictoryRush = 34428
+        -- Spells injected
         
         local B_Bloodsurge = 46916 -- Instant Slam Proc
+
         local B_SuddenDeath = 52437 -- Arms talent, but just in case
         
         -- Logic Flow

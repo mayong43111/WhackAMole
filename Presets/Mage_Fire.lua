@@ -1,18 +1,9 @@
 -- Fire Mage Profile for WhackAMole (Titan-Forged / 3.3.5a)
--- 泰坦服务�?火法输出方案
+-- 泰坦服务�?火法输出方案
 
 local _, ns = ...
 
--- Spell IDs (Titan Server Fix: Using Max Ranks)
-local S_LivingBomb    = 55360  -- Rank 3
-local S_Pyroblast     = 42891  -- Rank 12
-local S_Fireball      = 42833  -- Rank 16
-local S_Scorch        = 42859  -- Rank 11
-local S_Combustion    = 11129  -- Rank 1
-local S_MirrorImage   = 55342  -- Rank 1 (For 4T10 Burst)
-local S_FireBlast     = 42873  -- Rank 11
-local S_DragonsBreath = 42950  -- Rank 6
-
+-- Spell IDs are managed in Core/Constants.lua
 -- Buff/Debuff IDs
 local B_HotStreak = 48108
 local D_Scorch    = 22959
@@ -32,20 +23,20 @@ ns.ProfileManager:RegisterPreset({
     layout = {
         slots = {
             -- Row 1: Main Action (Freq High)
-            [1] = { int_id = 1, id = S_Fireball },  -- Filler
-            [2] = { int_id = 2, id = S_Pyroblast }, -- Proc
-            [3] = { int_id = 3, id = S_LivingBomb },-- DoT
-            [4] = { int_id = 7, id = S_Scorch },    -- Debuff
+            [1] = { int_id = 1, id = ns.ID.Fireball },  -- Filler
+            [2] = { int_id = 2, id = ns.ID.Pyroblast }, -- Proc
+            [3] = { int_id = 3, id = ns.ID.LivingBomb },-- DoT
+            [4] = { int_id = 7, id = ns.ID.Scorch },    -- Debuff
             
             -- Row 2: Movement / Situational 
-            [5] = { int_id = 6, id = S_FireBlast }, -- Move
+            [5] = { int_id = 6, id = ns.ID.FireBlast }, -- Move
             
             -- Row 2 (End): Big CDs (Rarely clicked)
-            [6] = { int_id = 5, id = S_Combustion },
-            [7] = { int_id = 4, id = S_MirrorImage },
+            [6] = { int_id = 5, id = ns.ID.Combustion },
+            [7] = { int_id = 4, id = ns.ID.MirrorImage },
             
             -- Row 3: Utility (Optional)
-            [8] = { int_id = 8, id = S_DragonsBreath }
+            [8] = { int_id = 8, id = ns.ID.DragonsBreath }
         }
     },
     
@@ -57,14 +48,8 @@ ns.ProfileManager:RegisterPreset({
         local debuff = target.debuff
 
         -- Spell IDs
-        local S_LivingBomb    = 55360
-        local S_Pyroblast     = 42891
-        local S_Fireball      = 42833
-        local S_Scorch        = 42859
-        local S_Combustion    = 11129
-        local S_MirrorImage   = 55342
-        local S_FireBlast     = 42873
-        local S_DragonsBreath = 42950
+        -- Injected by Core/Constants.lua
+
         
         local B_HotStreak = 48108
         -- Debuff Group: Critical Mass (5% Spell Crit)

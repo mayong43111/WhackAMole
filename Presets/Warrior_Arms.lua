@@ -3,12 +3,9 @@
 
 local _, ns = ...
 
-local S_MortalStrike = 12294
-local S_Overpower = 7384
-local S_Execute = 5308
-local S_Rend = 772
-local S_Slam = 1464
-local S_Bladestorm = 46924
+-- IDs are now managed in Core/Constants.lua
+-- Access them via ns.ID.SpellName
+
 
 ns.ProfileManager:RegisterPreset({
     meta = {
@@ -24,12 +21,12 @@ ns.ProfileManager:RegisterPreset({
         -- Defines visuals and slots. 
         -- 'int_id' matches the return value of the script.
         slots = {
-            [1] = { int_id = 1, id = S_MortalStrike }, -- MS
-            [2] = { int_id = 2, id = S_Overpower },    -- OP
-            [3] = { int_id = 3, id = S_Execute },      -- Exec
-            [4] = { int_id = 4, id = S_Rend },         -- Rend
-            [5] = { int_id = 5, id = S_Slam },         -- Slam
-            [6] = { int_id = 6, id = S_Bladestorm }    -- BS
+            [1] = { int_id = 1, id = ns.ID.MortalStrike }, -- MS
+            [2] = { int_id = 2, id = ns.ID.Overpower },    -- OP
+            [3] = { int_id = 3, id = ns.ID.Execute },      -- Exec
+            [4] = { int_id = 4, id = ns.ID.Rend },         -- Rend
+            [5] = { int_id = 5, id = ns.ID.Slam },         -- Slam
+            [6] = { int_id = 6, id = ns.ID.Bladestorm }    -- BS
         }
     },
     
@@ -41,12 +38,7 @@ ns.ProfileManager:RegisterPreset({
         local buff = player.buff
         local debuff = target.debuff
 
-        local S_MortalStrike = 12294
-        local S_Overpower = 7384
-        local S_Execute = 5308
-        local S_Rend = 772
-        local S_Slam = 1464
-        local S_Bladestorm = 46924
+        -- IDs are injected by Core (S_MortalStrike, etc.)
         
         local B_SuddenDeath = 52437 
 

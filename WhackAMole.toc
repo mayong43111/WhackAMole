@@ -11,6 +11,9 @@ embeds.xml
 # Utilities
 Utils.lua
 
+# Shared Constants (Loaded Early)
+Core\Constants.lua
+
 # Class Detection
 Classes\Registry.lua
 Classes\Warrior.lua
@@ -22,11 +25,15 @@ Classes\Mage.lua
 Engine\State.lua
 
 # Core
+Core\SpecDetection.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
-Core\SoundMapping.lua
 Core\Audio.lua
 Core.lua
+
+# UI
+UI\Grid.lua
+UI\Options.lua
 
 # Presets (Built-in)
 Presets\Warrior_Arms.lua

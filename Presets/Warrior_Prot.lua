@@ -1,12 +1,8 @@
 local _, ns = ...
 
-local S_Revenge = 6572
-local S_ShieldSlam = 23922
-local S_Shockwave = 46968
-local S_Devastate = 20243
-local S_ConcussionBlow = 12809
-local S_Execute = 5308
-local S_HeroicStrike = 78
+-- IDs managed by Core/Constants.lua
+-- ns.ID.SpellName
+
 
 ns.ProfileManager:RegisterPreset({
     meta = {
@@ -20,12 +16,12 @@ ns.ProfileManager:RegisterPreset({
     
     layout = {
         slots = {
-            [1] = { int_id = 1, id = S_Shockwave },      -- Shockwave (AoE/Stun)
-            [2] = { int_id = 2, id = S_ShieldSlam },     -- Shield Slam (Threat)
-            [3] = { int_id = 3, id = S_Revenge },        -- Revenge (Cleave/Threat)
-            [4] = { int_id = 4, id = S_Devastate },      -- Devastate (Filler)
-            [5] = { int_id = 5, id = S_ConcussionBlow }, -- CC
-            [6] = { int_id = 6, id = S_HeroicStrike }    -- HS (Rage Dump)
+            [1] = { int_id = 1, id = ns.ID.Shockwave },      -- Shockwave (AoE/Stun)
+            [2] = { int_id = 2, id = ns.ID.ShieldSlam },     -- Shield Slam (Threat)
+            [3] = { int_id = 3, id = ns.ID.Revenge },        -- Revenge (Cleave/Threat)
+            [4] = { int_id = 4, id = ns.ID.Devastate },      -- Devastate (Filler)
+            [5] = { int_id = 5, id = ns.ID.ConcussionBlow }, -- CC
+            [6] = { int_id = 6, id = ns.ID.HeroicStrike }    -- HS (Rage Dump)
         }
     },
     
@@ -34,14 +30,10 @@ ns.ProfileManager:RegisterPreset({
         local player = env.player
         local spell = env.spell
         
-        local S_Revenge = 6572
-        local S_ShieldSlam = 23922
-        local S_Shockwave = 46968
-        local S_Devastate = 20243
-        local S_ConcussionBlow = 12809
-        local S_HeroicStrike = 78
+        -- Spells injected
         
         local rage = player.power.rage.current
+
         
         -- Logic Flow (Basic Threat / Mitigation)
         
