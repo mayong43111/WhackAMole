@@ -18,12 +18,14 @@ ns.ProfileManager:RegisterPreset({
             [3] = { action = "execute" },
             [4] = { action = "rend" },
             [5] = { action = "slam" },
-            [6] = { action = "bladestorm" }
+            [6] = { action = "bladestorm" },
+            [7] = { action = "thunder_clap" }
         }
     },
     
     apl = {
         "actions+=/rend,if=debuff.rend.remains<3&target.time_to_die>6",
+        "actions+=/thunder_clap,if=debuff.thunder_clap.down",
         "actions+=/overpower",
         "actions+=/execute,if=target.health.pct<20|buff.sudden_death.up",
         "actions+=/bladestorm,if=target.health.pct>=20",

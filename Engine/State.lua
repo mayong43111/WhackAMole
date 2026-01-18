@@ -25,6 +25,15 @@ local function FindAura(cache, id)
         if name and cache[name] then
             return cache[name]
         end
+        
+        -- 3. Fallback for Private Servers / ID Mismatches
+        -- If ID 52437 (Sudden Death) fails, try looking for the name manually
+        if id == 52437 then 
+             if cache["Sudden Death"] then return cache["Sudden Death"] end
+             if cache["猝死"] then return cache["猝死"] end
+        end
+        -- Add other fallbacks if needed
+        
     elseif type(id) == "string" and cache[id] then
         return cache[id]
     end
@@ -97,15 +106,50 @@ local mt_debuff = {
 
 local mt_spell = {
     __call = function(t, id)
+        -- Retrieve Spell Name to handle Ranks automatically
+        -- IsUsableSpell(ID) only works if you have that specific Rank ID.
+        -- IsUsableSpell(Name) works for highest rank.
+        local req = id
+        local name = GetSpellInfo(id)
+        if name then req = name end
+
         -- Check usability
-        local usable, nomana = IsUsableSpell(id)
+        local usable, nomana = IsUsableSpell(req)
         
+        -- WARRIOR Fix: Execute with Sudden Death
+        -- IsUsableSpell("Execute") sometimes returns false on >20% HP even with Sudden Death buff
+        if ns.ID and ns.ID.Execute and (id == ns.ID.Execute or name == GetSpellInfo(ns.ID.Execute)) then
+            local sd_found = false
+            
+            -- 1. Try ID
+            if ns.ID.SuddenDeath then
+                local aura = FindAura(buff_cache, ns.ID.SuddenDeath)
+                if aura and aura.up then sd_found = true end
+            end
+            
+            -- 2. Try English Name
+            if not sd_found then
+                local aura = FindAura(buff_cache, "Sudden Death")
+                if aura and aura.up then sd_found = true end
+            end
+            
+            -- 3. Try Chinese Name
+            if not sd_found then
+                local aura = FindAura(buff_cache, "猝死")
+                if aura and aura.up then sd_found = true end
+            end
+
+            if sd_found then
+                usable = true
+            end
+        end
+
         -- Check cooldown
-        local start, duration, enabled = GetSpellCooldown(id)
+        local start, duration, enabled = GetSpellCooldown(req)
         local on_cooldown = false
         
         local remains = 0
-        if start > 0 and duration > 1.5 then -- Ignore GCD (approx)
+        if start and start > 0 and duration > 1.5 then -- Ignore GCD (approx)
              -- Calculate when it comes off CD
              local readyAt = start + duration
              remains = math.max(0, readyAt - state.now)
@@ -150,7 +194,7 @@ state.buff = state.player.buff
 
 state.target = {
     debuff = setmetatable({}, mt_debuff),
-    health_pct = 0,
+    health = { pct = 0, current = 0, max = 0 },
     time_to_die = 99
 }
 state.debuff = state.target.debuff
@@ -207,7 +251,15 @@ function state.reset()
     if UnitExists("target") then
         local hp = UnitHealth("target")
         local max = UnitHealthMax("target")
-        state.target.health_pct = (max > 0) and ((hp / max) * 100) or 0
+        local pct = (max > 0) and ((hp / max) * 100) or 0
+        
+        state.target.health.current = hp
+        state.target.health.max = max
+        state.target.health.pct = pct
+        
+        -- Legacy alias if needed
+        state.target.health_pct = pct 
+        
         state.target.time_to_die = 99 -- Placeholder
         
         -- Range Check (Approximate for WotLK)

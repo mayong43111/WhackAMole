@@ -32,7 +32,27 @@ function APLExecutor.Process(apl, state)
         end
         
         if allowed then
-             return entry.action
+             -- Implicit SimC Check: Action must be ready (Cooldown up & Usable)
+             -- This handles reactive spells like Overpower (requires proc) or Rampage.
+             local ready = true
+             
+             if state and state.spell and entry.action then
+                 -- Access state.spell to trigger metatable logic
+                 -- This performs IsUsableSpell() + GetSpellCooldown()
+                 local spellState = state.spell[entry.action]
+                 
+                 -- If the spell exists in our map/book
+                 if spellState and type(spellState) == "table" then
+                     -- Check consistency
+                     if spellState.ready == false then
+                         ready = false
+                     end
+                 end
+             end
+
+             if ready then
+                 return entry.action
+             end
         end
     end
     
