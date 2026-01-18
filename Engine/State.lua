@@ -32,7 +32,6 @@ local function FindAura(cache, id)
              if cache["Sudden Death"] then return cache["Sudden Death"] end
              if cache["猝死"] then return cache["猝死"] end
         end
-        -- Add other fallbacks if needed
         
     elseif type(id) == "string" and cache[id] then
         return cache[id]
@@ -60,15 +59,19 @@ local mt_buff = {
                 up = true,
                 down = false,
                 count = aura.count,
-                remains = remains,
+                -- Safe fallback for remains calculation
+                remains = (expires == 0) and 9999 or math.max(0, expires - state.now),
                 duration = aura.duration
             }
         end
         return aura
     end,
     __index = function(t, k)
-        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
-             return t(ns.ActionMap[k])
+        if type(k) == "string" then
+             if ns.ActionMap and ns.ActionMap[k] then
+                 return t(ns.ActionMap[k])
+             end
+             return aura_down
         end
     end
 }
@@ -80,8 +83,18 @@ local mt_debuff = {
             local expires = aura.expires or 0
             if expires == 0 then return aura end
             
-            local remains = math.max(0, expires - state.now)
-            if remains == 0 then return aura_down end
+            -- Safe fallback for remains calculation
+            local remains = 0
+            if expires == 0 then
+                remains = 9999
+            else
+                 -- Ensure state.now and expires are numbers before math
+                 local now = tonumber(state.now) or GetTime()
+                 local exp = tonumber(expires) or now
+                 remains = math.max(0, exp - now)
+            end
+            
+            if remains == 0 and expires ~= 0 then return aura_down end
             
             return {
                 up = true,
@@ -94,8 +107,11 @@ local mt_debuff = {
         return aura
     end,
     __index = function(t, k)
-        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
-             return t(ns.ActionMap[k])
+        if type(k) == "string" then
+             if ns.ActionMap and ns.ActionMap[k] then
+                 return t(ns.ActionMap[k])
+             end
+             return aura_down
         end
     end
 }
@@ -103,6 +119,10 @@ local mt_debuff = {
 -- =========================================================================
 -- Spell Metatable
 -- =========================================================================
+-- Ensure ActionMap is populated properly (fallback if called too early)
+if ns.BuildActionMap and (not ns.ActionMap or not next(ns.ActionMap)) then
+    ns.BuildActionMap()
+end
 
 local mt_spell = {
     __call = function(t, id)
@@ -119,28 +139,27 @@ local mt_spell = {
         -- WARRIOR Fix: Execute with Sudden Death
         -- IsUsableSpell("Execute") sometimes returns false on >20% HP even with Sudden Death buff
         if ns.ID and ns.ID.Execute and (id == ns.ID.Execute or name == GetSpellInfo(ns.ID.Execute)) then
-            local sd_found = false
+            -- Custom logic for Execute:
+            -- 1. Check Conditions: < 20% HP OR Sudden Death Buff
+            local cond_hp = (state.target.health.pct < 20)
+            local cond_sd = false
             
-            -- 1. Try ID
             if ns.ID.SuddenDeath then
                 local aura = FindAura(buff_cache, ns.ID.SuddenDeath)
-                if aura and aura.up then sd_found = true end
+                if aura and aura.up then cond_sd = true end
             end
             
-            -- 2. Try English Name
-            if not sd_found then
-                local aura = FindAura(buff_cache, "Sudden Death")
-                if aura and aura.up then sd_found = true end
-            end
-            
-            -- 3. Try Chinese Name
-            if not sd_found then
-                local aura = FindAura(buff_cache, "猝死")
-                if aura and aura.up then sd_found = true end
-            end
-
-            if sd_found then
-                usable = true
+            -- 2. If valid condition, check Rage manually
+            if cond_hp or cond_sd then
+                -- Assuming Min Rage Cost = 10 (Sudden Death retains 10, Talents reduce cost)
+                -- We use our own rage check instead of standard IsUsableSpell
+                if state.rage >= 10 then
+                    usable = true
+                    nomana = false
+                else
+                    usable = false
+                    nomana = true -- Signal "Resource Missing" (blue highlight usually)
+                end
             end
         end
 
@@ -170,8 +189,23 @@ local mt_spell = {
         }
     end,
     __index = function(t, k)
-        if type(k) == "string" and ns.ActionMap and ns.ActionMap[k] then
-             return t(ns.ActionMap[k])
+        if type(k) == "string" then
+             if ns.ActionMap and ns.ActionMap[k] then
+                 return t(ns.ActionMap[k])
+             end
+             
+             -- DEBUG Log only if requested? Or hard fail?
+             -- Actually, Execute might be failing because ActionMap isn't loaded yet?
+             -- We added BuildActionMap call above.
+             
+             return {
+                usable = false,
+                ready = false,
+                cooldown_remains = 0,
+                up = false,
+                remains = 0,
+                cast_time = 0 
+             }
         end
     end
 }
@@ -214,19 +248,34 @@ local function ScanAuras(unit, cache, filter)
         local name, rank, icon, count, debuffType, duration, expirationTime, source, isStealable, shouldConsolidate, spellId = UnitAura(unit, i, filter)
         if not name then break end
         
-        if spellId then
-            local aura = {
-                up = true,
-                down = false,
-                count = count,
-                -- Store RAW expiration time to allow virtualization
-                expires = (expirationTime == 0) and 0 or expirationTime, 
-                duration = duration,
-                remains = 0 -- Calculated dynamically
-            }
-            cache[spellId] = aura
-            if name then cache[name] = aura end
+        -- Sanitize expirationTime (Fix for potential string returns on private servers)
+        expirationTime = tonumber(expirationTime) or 0
+        
+        -- DEBUG: Log EVERYTHING found on target to debug visibility
+        if unit == "target" and ns.Logger then
+             ns.Logger:Log("Scan: [" .. i .. "] " .. (name or "nil") .. " ID: " .. (spellId or "nil") .. " Exp: " .. expirationTime)
         end
+        
+        local aura = {
+            up = true,
+            down = false,
+            count = count,
+            -- Store RAW expiration time to allow virtualization
+            expires = (expirationTime == 0) and 0 or expirationTime, 
+            duration = duration,
+            -- If expiration is 0 (permanent), remains should be infinite (9999)
+            -- Otherwise request dynamic calc (0 placeholder)
+            remains = (expirationTime == 0) and 9999 or 0 
+        }
+
+        if spellId then
+            cache[spellId] = aura
+        end
+        
+        if name then 
+            cache[name] = aura 
+        end
+
         i = i + 1
     end
 end
@@ -280,7 +329,35 @@ function state.reset()
     -- 3. Snapshot Auras (Efficiency: Scan once per frame)
     ScanAuras("player", buff_cache, "HELPFUL")
     if UnitExists("target") then
-        ScanAuras("target", debuff_cache, "HARMFUL|PLAYER") -- Only my debuffs? Or all? "PLAYER" filter means cast by me.
+        -- WARRIOR FIX: Use UnitDebuff directly without complex filters first to ensure we see everything
+        -- iterate by index explicitly 1 to 40
+        wipe(debuff_cache)
+        for i = 1, 40 do
+            -- Try simplest call: UnitDebuff(unit, i)
+            local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitDebuff("target", i)
+            if not name then break end
+            
+            -- Sanitize
+            expirationTime = tonumber(expirationTime) or 0
+            
+            -- Log finding
+            if ns.Logger and (name == "撕裂" or name == "Rend") then
+                 ns.Logger:Log("Scan Found Raw: " .. name .. " Exp: " .. expirationTime .. " Caster: " .. (unitCaster or "nil"))
+            end
+            
+            local aura = {
+               up = true,
+               count = count,
+               expires = (expirationTime == 0) and 0 or expirationTime,
+               duration = duration,
+               remains = (expirationTime == 0) and 9999 or math.max(0, expirationTime - state.now)
+            }
+            
+            -- Store by ID (if available)
+            if spellId then debuff_cache[spellId] = aura end
+            -- Store by Name (Always)
+            if name then debuff_cache[name] = aura end
+        end
     else
         wipe(debuff_cache)
     end

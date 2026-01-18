@@ -65,6 +65,12 @@ function WhackAMole:OnChatCommand(input)
         ns.UI.Grid:SetLock(true)
     elseif input == "unlock" then
         ns.UI.Grid:SetLock(false)
+    elseif input == "log start" then
+        if ns.Logger then ns.Logger:Start() end
+    elseif input == "log stop" then
+        if ns.Logger then ns.Logger:Stop() end
+    elseif input == "log show" then
+        if ns.Logger then ns.Logger:Show() end
     else
         LibStub("AceConfigDialog-3.0"):Open("WhackAMole")
     end

@@ -13,6 +13,7 @@ Utils.lua
 
 # Shared Constants (Loaded Early)
 Core\Constants.lua
+Core\ActionMap.lua
 
 # Class Detection
 Classes\Registry.lua
@@ -28,6 +29,7 @@ Engine\State.lua
 
 # Core
 Core\SpecDetection.lua
+Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
 Core\Audio.lua

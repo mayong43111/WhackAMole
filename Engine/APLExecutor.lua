@@ -9,6 +9,9 @@ ns.APLExecutor = APLExecutor
 function APLExecutor.Process(apl, state)
     if not apl then return nil end
     
+    local isLogging = ns.Logger and ns.Logger.enabled
+    if isLogging then ns.Logger:Log("--- Start APL Process ---") end
+
     for i, entry in ipairs(apl) do
         local allowed = true
         
@@ -21,13 +24,26 @@ function APLExecutor.Process(apl, state)
                 local success, result = pcall(entry.condition, state)
                 if success then
                     allowed = result
+                    if isLogging then 
+                        ns.Logger:Log(string.format("Action: %s | Cond: TRUE", entry.action or "Unknown")) 
+                    end
                 else
                     -- On error, treat as false? Or log?
                     allowed = false
+                    if isLogging then 
+                        ns.Logger:Log(string.format("Action: %s | Cond: ERROR (%s)", entry.action or "Unknown", tostring(result))) 
+                    end
                 end
             else
                 -- If it's not a function (e.g. static boolean), use it directly
                 allowed = entry.condition
+                if isLogging then 
+                    ns.Logger:Log(string.format("Action: %s | Cond: Static %s", entry.action or "Unknown", tostring(allowed))) 
+                end
+            end
+        else
+            if isLogging then 
+                ns.Logger:Log(string.format("Action: %s | Cond: NONE (Always True)", entry.action or "Unknown")) 
             end
         end
         
@@ -46,15 +62,24 @@ function APLExecutor.Process(apl, state)
                      -- Check consistency
                      if spellState.ready == false then
                          ready = false
+                         if isLogging then 
+                             ns.Logger:Log(string.format(" -> Skipped: Not Ready (Usable=%s, CD_Remains=%s)", tostring(spellState.usable), tostring(spellState.cooldown_remains))) 
+                         end
+                     end
+                 else
+                     if isLogging then
+                         ns.Logger:Log(string.format(" -> Skipped: Spell State Missing for '%s'", entry.action))
                      end
                  end
              end
 
              if ready then
+                 if isLogging then ns.Logger:Log(" -> EXECUTING: " .. entry.action) end
                  return entry.action
              end
         end
     end
     
+    if isLogging then ns.Logger:Log("--- No Action Met ---") end
     return nil
 end
