@@ -1,29 +1,29 @@
-# WhackAMole (打地鼠)
+﻿# WhackAMole (打地鼠)
 
-WhackAMole is a World of Warcraft (3.3.5a) addon designed to help players with their rotation by visualizing the next best spell to cast, like a game of whack-a-mole. It is specifically optimized for the Titan-Forged private server environment but follows standard WotLK logic.
+WhackAMole 是一个魔兽世界 (3.3.5a) 插件，旨在通过可视化下一个最佳施法技能来帮助玩家进行循环输出，就像打地鼠游戏一样。它专门针对 Titan-Forged 私服环境进行了优化，但也遵循标准的 WLK 逻辑。
 
-## Features
+## 功能特性
 
-- **Visual Rotation Assistance**: Shows the next ability to press directly on your screen.
-- **Dynamic Layout**: Automatically arranges ability icons based on priority and type.
-- **Profile Support**: Comes with built-in profiles for supported classes (currently focused on Fire Mage).
-- **Titan-Forged Optimizations**: Includes logic adjustments for custom server mechanics like T10 set bonuses.
-- **Easy Configuration**: Drag-and-drop to remove unwanted suggestions, right-click to configure.
+- **可视化循环辅助**：直接在屏幕上显示下一个需要按下的技能。
+- **动态布局**：根据优先级和类型自动排列技能图标。
+- **配置支持**：内置支持职业的配置文件（目前专注于火法）。
+- **泰坦服优化**：包含针对自定义服务器机制（如 T10 套装奖励）的逻辑调整。
+- **简易配置**：拖放即可移除不需要的建议，右键点击标题栏即可进行配置。
 
-## Installation
+## 安装说明
 
-1.  Download the repository.
-2.  Copy the `WhackAMole` folder to your WoW AddOns directory:
-    `Interface\AddOns\WhackAMole`
-3.  (Optional) If you are a developer, copy `.env.example` to `.env` and set your WoW path, then use `publish.ps1` to deploy.
+1.  下载本仓库。
+2.  将 \WhackAMole\ 文件夹复制到您的魔兽世界插件目录：
+    \Interface\AddOns\WhackAMole\
+3.  (可选) 如果您是开发者，请参考 \.env\ 文件设置您的 WoW 路径，然后使用 \publish.ps1\ 脚本自动发布。
 
-## Usage
+## 使用方法
 
--   **/mole** or **/whackamole**: Open the configuration menu.
--   **Right-click** the addon frame header to access quick options (Lock/Unlock, Clear).
--   **Drag** an icon off the bar to remove it from the suggestion list (when unlocked).
--   **Drag** a spell from your spellbook onto a slot to manually assign it (drag support is limited in combat).
+-   输入 **/mole** 或 **/whackamole**：打开配置菜单。
+-   **右键点击** 插件框体标题栏：访问快速选项（锁定/解锁，清空技能条）。
+-   **拖拽** 图标离开栏位：从建议列表中移除该技能（仅限解锁状态）。
+-   **拖拽** 法术书中的技能到栏位：手动将技能分配到该位置（战斗中无法操作）。
 
-## License
+## 许可证
 
 MIT
