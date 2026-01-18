@@ -232,9 +232,7 @@ function WhackAMole:OnInitialize()
     self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("WhackAMole", "WhackAMole")
     
     -- Register chat command
-    self:RegisterChatCommand("WhackAMole", "OnChatCommand")
-    self:RegisterChatCommand("mole", "OnChatCommand")
-    self:RegisterChatCommand("bis", "OnChatCommand")
+    self:RegisterChatCommand("wam", "OnChatCommand")
 end
 
 function WhackAMole:OnChatCommand(input)
