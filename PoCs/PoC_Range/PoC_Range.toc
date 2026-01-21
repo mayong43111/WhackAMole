@@ -1,0 +1,5 @@
+## Interface: 30300
+## Title: PoC_Range
+## Notes: Range Detection Validation Tool for WotLK 3.3.5
+
+Core.lua
