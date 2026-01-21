@@ -1,4 +1,5 @@
-$sourceDir = $PSScriptRoot
+
+$sourceDir = Join-Path $PSScriptRoot "src"
 
 # Load path from .env
 $envPath = Join-Path $PSScriptRoot ".env"
@@ -51,12 +52,8 @@ if (-not (Test-Path $destDir)) {
     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 }
 
-# Exclude list
-$excludeItems = @(".git", ".iconr", ".env", ".vscode", "Docs", "Tests", "publish.ps1", "README.md", ".gitignore")
-
-Get-ChildItem -Path $sourceDir | Where-Object { 
-    $excludeItems -notcontains $_.Name 
-} | ForEach-Object {
+# Copy all files from src
+Get-ChildItem -Path $sourceDir | ForEach-Object {
     Copy-Item -Path $_.FullName -Destination $destDir -Recurse -Force
 }
 

@@ -6,19 +6,41 @@ L.enabled = false
 L.lines = {}
 L.maxLines = 1000 -- Hard limit to prevent memory issues
 
+
+-- Mixin AceEvent for combat log listening
+LibStub("AceEvent-3.0"):Embed(L)
+
 function L:Start()
     -- Clear previous logs explicitly
     self.lines = {}
     self.enabled = true
+    
+    -- Register Combat Log to capture precise Spell IDs
+    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    
     self:Log("Logging started.")
     print("|cff00ff00WhackAMole Logging Started.|r")
 end
 
 function L:Stop()
     self.enabled = false
+    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     self:Log("Logging stopped.")
     print("|cffff0000WhackAMole Logging Stopped.|r Type /wam log show to view.")
 end
+
+function L:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, spellId, spellName, spellSchool, ...)
+    if not self.enabled then return end
+    
+    -- Debug: Bypass Source Filter to see if ANY events are coming
+    -- Matches ANY spell cast (player or npc) just to verify the event structure
+    if eventType == "SPELL_CAST_SUCCESS" then
+         local src = sourceName or "Unknown"
+         local dst = destName or "Unknown"
+         self:Log(string.format("[CLEU] %s: %s (ID:%s) [%s -> %s]", eventType, tostring(spellName), tostring(spellId), src, dst))
+    end
+end
+
 
 function L:Log(msg)
     if not self.enabled then return end

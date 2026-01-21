@@ -333,30 +333,72 @@ function state.reset()
         -- iterate by index explicitly 1 to 40
         wipe(debuff_cache)
         for i = 1, 40 do
-            -- Try simplest call: UnitDebuff(unit, i)
-            local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, shouldConsolidate, spellId = UnitDebuff("target", i)
+            -- 3.3.5 Private Server Heuristics Implementation
+            -- We dump 11 arguments to catch the shifted values
+            local name, rank, icon, count, debuffType, arg6, arg7, arg8, arg9, arg10, arg11 = UnitDebuff("target", i)
             if not name then break end
             
-            -- Sanitize
-            expirationTime = tonumber(expirationTime) or 0
+            local expirationTime, duration, unitCaster, spellId, isMine
+            local now = GetTime()
+
+            -- [Fix 1] Timestamp/Duration Shift Detection
+            -- Log shows Arg6 is ~130000+ (Timestamp) while standard API expects Duration (<3600)
+            if arg6 and arg6 > now then
+                expirationTime = arg6
+                duration = 0 -- Duration is either 0 or lost in this shift
+            else
+                -- Standard behavior fallback
+                duration = arg6
+                expirationTime = arg7
+            end
+
+            -- [Fix 2] Ownership/Caster Detection
+            -- Log shows Arg11 is boolean 'true' for player spells (Rend, ThunderClap) instead of SpellID
+            if type(arg11) == "boolean" then
+                isMine = arg11
+                spellId = nil -- ID is replaced by boolean
+                unitCaster = isMine and "player" or nil
+            else
+                -- Standard behavior fallback
+                spellId = arg11
+                unitCaster = arg8
+                isMine = (unitCaster == "player")
+            end
             
-            -- Log finding
-            if ns.Logger and (name == "撕裂" or name == "Rend") then
-                 ns.Logger:Log("Scan Found Raw: " .. name .. " Exp: " .. expirationTime .. " Caster: " .. (unitCaster or "nil"))
+            -- Sanitize numbers
+            expirationTime = tonumber(expirationTime) or 0
+            duration = tonumber(duration) or 0
+            
+            -- Log finding (Cleaned up)
+            if ns.Logger and ns.Logger.enabled then
+                 local debugMsg = string.format("Scan: [%s] Mine:%s | Exp:%s | Rem:%.1f", 
+                    name, 
+                    tostring(isMine), 
+                    tostring(expirationTime),
+                    (expirationTime > 0 and (expirationTime - state.now) or 9999)
+                 )
+                 ns.Logger:Log(debugMsg)
             end
             
             local aura = {
                up = true,
+               mine = isMine, -- Store ownership
                count = count,
                expires = (expirationTime == 0) and 0 or expirationTime,
                duration = duration,
                remains = (expirationTime == 0) and 9999 or math.max(0, expirationTime - state.now)
             }
             
-            -- Store by ID (if available)
+            -- Store logic: Always prefer "My" debuffs for the same name
+            -- If debuff_cache[name] exists, only overwrite if current isMine is true
+            if name then
+                if isMine or not debuff_cache[name] then
+                    debuff_cache[name] = aura
+                end
+            end
+            
+            -- Store by ID if we ever get a real ID (from CLEU map maybe later)
             if spellId then debuff_cache[spellId] = aura end
-            -- Store by Name (Always)
-            if name then debuff_cache[name] = aura end
         end
     else
         wipe(debuff_cache)

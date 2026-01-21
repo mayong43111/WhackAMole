@@ -14,4 +14,4 @@ Desktop.ini
 *.code-workspace
 
 .env
-Tests/lua_dist/
+lua_dist/
