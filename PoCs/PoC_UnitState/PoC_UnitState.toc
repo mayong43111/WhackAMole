@@ -1,0 +1,5 @@
+## Interface: 30300
+## Title: PoC_UnitState
+## Notes: Validates Unit State APIs (Health, Power, Auras)
+
+Core.lua

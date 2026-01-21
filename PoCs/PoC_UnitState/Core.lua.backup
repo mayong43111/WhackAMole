@@ -1,0 +1,232 @@
+-- PoC_UnitState: Validates Unit State APIs for WotLK 3.3.5
+-- Based on reference implementations from WeakAuras, TUnitFrame, TotemTimers
+
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+frame:RegisterEvent("UNIT_AURA")
+frame:RegisterEvent("UNIT_HEALTH")
+frame:RegisterEvent("UNIT_POWER_UPDATE")
+
+-- Throttle UNIT_AURA updates to avoid spam
+local lastAuraUpdate = 0
+local AURA_THROTTLE = 0.5
+
+-- Helper: Safe UnitExists check
+local function SafeUnitExists(unit)
+    return unit and UnitExists(unit)
+end
+
+-- Test 1: Health Information
+local function TestHealth(unit)
+    if not SafeUnitExists(unit) then return end
+    
+    local hp = UnitHealth(unit)
+    local maxHp = UnitHealthMax(unit)
+    
+    -- Protection against division by zero
+    if maxHp <= 0 then 
+        print(string.format("[生命值] %s: 无效 (最大生命值=0)", unit))
+        return 
+    end
+    
+    local hpPercent = floor((hp / maxHp) * 100)
+    print(string.format("[生命值] %s: %d/%d (%d%%)", unit, hp, maxHp, hpPercent))
+end
+
+-- Test 2: Power Information  
+local function TestPower(unit)
+    if not SafeUnitExists(unit) then return end
+    
+    local power = UnitPower(unit)
+    local maxPower = UnitPowerMax(unit)
+    local powerType, powerToken = UnitPowerType(unit)
+    
+    -- Power type mapping for display
+    local powerNames = {
+        [0] = "法力",
+        [1] = "怒气", 
+        [2] = "集中",
+        [3] = "能量",
+        [6] = "符文能量"
+    }
+    
+    local powerName = powerNames[powerType] or powerToken or "未知"
+    
+    if maxPower > 0 then
+        print(string.format("[能量值] %s: %d/%d %s", unit, power, maxPower, powerName))
+    else
+        print(string.format("[能量值] %s: 无 (%s)", unit, powerName))
+    end
+end
+
+-- Test 3: Aura Scanning (Both HELPFUL and HARMFUL)
+-- Use UnitBuff/UnitDebuff for better WotLK 3.3.5 compatibility
+-- playerOnly: 如果为 true，只显示玩家或宠物施放的光环
+local function ScanAuras(unit, isBuff, maxScan, playerOnly)
+    if not SafeUnitExists(unit) then return 0 end
+    
+    maxScan = maxScan or 40
+    playerOnly = playerOnly or false
+    local auraCount = 0
+    
+    local filterName = isBuff and "增益" or "减益"
+    print(string.format("--- %s 光环 (%s) ---", unit, filterName))
+    
+    for i = 1, maxScan do
+        -- 测试完整返回值（参考 TotemTimers）:
+        -- name, icon, count, debuffType, duration, expirationTime, unitCaster, ...
+        local name, icon, count, debuffType, duration, expirationTime, unitCaster, v8, v9, v10, v11
+        
+        if isBuff then
+            name, icon, count, debuffType, duration, expirationTime, unitCaster, v8, v9, v10, v11 = UnitBuff(unit, i)
+        else
+            name, icon, count, debuffType, duration, expirationTime, unitCaster, v8, v9, v10, v11 = UnitDebuff(unit, i)
+        end
+        
+        if not name then 
+            break 
+        end
+        
+        -- 如果启用玩家过滤，跳过非玩家/宠物施放的光环
+        if playerOnly and unitCaster ~= "player" and unitCaster ~= "pet" then
+            -- 跳过此光环
+        else
+            auraCount = auraCount + 1
+        
+        -- 显示基础信息
+        local output = string.format("  [%d] %s", i, name)
+        
+        -- 层数
+        if count and count > 1 then
+            output = output .. " x" .. count
+        end
+        
+        -- 施法者测试
+        if unitCaster then
+            if unitCaster == "player" then
+                output = output .. " [玩家]"
+            elseif unitCaster == "pet" then
+                output = output .. " [宠物]"
+            else
+                output = output .. " [" .. tostring(unitCaster) .. "]"
+            end
+        end
+        
+        -- 时间
+        if duration and duration > 0 and expirationTime and expirationTime > 0 then
+            local remaining = expirationTime - GetTime()
+            if remaining > 0 then
+                output = output .. string.format(" (%.1f/%.1f秒)", remaining, duration)
+            end
+        end
+        
+            print(output)
+        end  -- end of playerOnly filter
+    end
+    
+    if auraCount == 0 then
+        print(string.format("  (无%s光环)", filterName))
+    end
+    
+    return auraCount
+end
+
+-- Test 4: Combined Aura Scan
+local function TestAuras(unit)
+    if not SafeUnitExists(unit) then return end
+    
+    local buffCount = ScanAuras(unit, true, 40)  -- true = buffs
+    local debuffCount = ScanAuras(unit, false, 40)  -- false = debuffs
+    
+    print(string.format("[统计] 增益: %d个, 减益: %d个", buffCount, debuffCount))
+end
+
+-- Test 5: Player's Debuffs on Target
+local function TestPlayerDebuffs(unit)
+    if not SafeUnitExists(unit) then return end
+    
+    print(string.format("=== 我的减益效果 (%s) ===", UnitName(unit) or unit))
+    local myDebuffCount = ScanAuras(unit, false, 40, true)  -- false = debuffs, true = playerOnly
+    
+    if myDebuffCount == 0 then
+        print("  (目标上没有你施放的减益效果)")
+    else
+        print(string.format("[统计] 你的减益: %d个", myDebuffCount))
+    end
+end
+
+-- Main test function
+local function RunFullTest(unit)
+    unit = unit or "target"
+    
+    if not SafeUnitExists(unit) then
+        print(string.format("PoC_单位状态: 无效的单位 '%s'", unit))
+        return
+    end
+    
+    print("=== PoC_单位状态测试 ===")
+    print(string.format("单位: %s (%s)", UnitName(unit) or "未知", unit))
+    
+    TestHealth(unit)
+    TestPower(unit)
+    TestAuras(unit)
+    
+    print("=== 测试完成 ===")
+end
+
+-- Event Handler
+frame:SetScript("OnEvent", function(self, event, unit)
+    if event == "PLAYER_TARGET_CHANGED" then
+        if SafeUnitExists("target") then
+            RunFullTest("target")
+        else
+            print("PoC_单位状态: 目标已清除")
+        end
+        
+    elseif event == "UNIT_AURA" and unit == "target" then
+        -- Throttle aura updates
+        local now = GetTime()
+        if now - lastAuraUpdate >= AURA_THROTTLE then
+            lastAuraUpdate = now
+            if SafeUnitExists("target") then
+                print("\n[光环更新]")
+                TestAuras("target")
+            end
+        end
+        
+    elseif event == "UNIT_HEALTH" and unit == "target" then
+        -- Optional: track health changes
+        -- TestHealth("target")
+        
+    elseif event == "UNIT_POWER_UPDATE" and unit == "target" then  
+        -- Optional: track power changes
+        -- TestPower("target")
+    end
+end)
+
+-- Slash command for manual testing
+SLASH_POCUNITSTATE1 = "/pocunit"
+SLASH_POCUNITSTATE2 = "/pocus"
+SlashCmdList["POCUNITSTATE"] = function(msg)
+    msg = strtrim(msg or "")
+    if msg == "" then
+        msg = "target"
+    end
+    RunFullTest(msg)
+end
+
+-- Slash command for checking player's debuffs on target
+SLASH_POCMYDEBUFF1 = "/pocmydebuff"
+SLASH_POCMYDEBUFF2 = "/mydebuff"
+SlashCmdList["POCMYDEBUFF"] = function(msg)
+    msg = strtrim(msg or "")
+    if msg == "" then
+        msg = "target"
+    end
+    TestPlayerDebuffs(msg)
+end
+
+print("PoC_单位状态 已加载！")
+print("使用方法: 选择一个目标，或使用 /pocunit [单位] 手动测试")
+print("示例: /pocunit player（玩家）, /pocunit target（目标）, /pocunit focus（焦点）")
+print("查看我的减益: /pocmydebuff 或 /mydebuff")

@@ -1,0 +1,5 @@
+## Interface: 30300
+## Title: PoC_SecureUI
+## Notes: Validates SecureActionButtonTemplat behavior
+
+Core.lua

@@ -1,0 +1,5 @@
+## Interface: 30300
+## Title: PoC_Spells
+## Notes: Validates Spell Info and Cooldown APIs
+
+Core.lua
