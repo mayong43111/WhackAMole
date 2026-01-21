@@ -1,76 +1,101 @@
 # PoC_Spells
 
 ## 简介
-此 PoC 主要用于验证**技能的可用性判断机制**，包括技能本身的基础条件（怒气/法力是否足够、是否在冷却、距离是否足够等）以及天赋触发时的特殊可用性状态。
+此 PoC 用于验证技能状态检测相关的核心 API，确保插件能够准确判断技能的可用性、冷却状态和施法状态。
 
-### 核心验证目标
-验证天赋触发时技能的可用性判断，例如：
-*   **猝死（Sudden Death）**触发时，斩杀（Execute）可以无视目标血量使用
-*   **战术大师（Tactical Mastery）**影响下，切换姿态时怒气保留
-*   **瞬发（Instant Cast）Proc** 触发时的技能可用性（如火焰冲击后的熔岩爆裂）
-*   其他天赋触发的技能使用条件变化
+## 核心验证目标
+验证以下三个关键 API 的准确性和可靠性：
 
-### 基础验证
-*   技能 ID 映射是否正确
-*   技能是否可用（法力/姿态/资源/距离等条件）
-*   冷却时间计算是否准确
+1. **`IsUsableSpell(name)`** - 技能是否可用
+   - 验证资源检测（怒气/法力/能量是否足够）
+   - 验证条件限制（姿态/形态/Buff要求）
+   - 验证目标要求（是否需要目标、目标类型）
+
+2. **`GetSpellCooldown(name)`** - 技能冷却时间
+   - 验证冷却开始时间的准确性
+   - 验证冷却持续时间的计算
+   - 验证公共 GCD 和独立 CD 的区分
+
+3. **施法状态检测** - 是否正在释放技能
+   - 验证 `UnitCastingInfo("player")` - 检测施法进度
+   - 验证 `UnitChannelInfo("player")` - 检测引导法术
+   - 验证施法打断和完成状态
 
 ## 验证的 API
-*   `GetSpellInfo(id/name)` - 获取技能基础信息
-*   `IsUsableSpell(name)` - **核心 API**：判断技能是否可用（包括天赋触发状态）
-*   `IsSpellInRange(name, unit)` - 判断技能是否在范围内
-*   `GetSpellCooldown(name)` - 获取冷却时间
-*   相关 Buff/Debuff 检测（用于验证天赋触发状态）
+*   `IsUsableSpell(name)` - **核心 API 1**：判断技能是否可用
+*   `GetSpellCooldown(name)` - **核心 API 2**：获取技能冷却时间
+*   `UnitCastingInfo("player")` - **核心 API 3a**：获取当前施法信息
+*   `UnitChannelInfo("player")` - **核心 API 3b**：获取当前引导法术信息
+*   `GetSpellInfo(id/name)` - 辅助 API：获取技能基础信息
 
 ## 使用方法
 1.  进入游戏，在插件列表中启用 **PoC_Spells**。
-2.  插件加载后会自动显示：
-    *   **技能监控窗口**（可拖动）- 实时显示技能状态
-    *   **距离显示条**（可拖动）- 显示与目标的距离范围
-3.  监控窗口实时显示技能可用性状态：
+2.  插件加载后会自动显示技能监控窗口（可拖动）。
+3.  监控窗口实时显示技能状态：
     *   **绿色背景** - 技能就绪，可以使用
-    *   **金色背景（闪亮）** - 天赋 Proc 触发！（如猝死、血腥冲锋等）
     *   **蓝色背景** - 技能冷却中，显示剩余秒数
-    *   **紫色背景** - 资源不足（怒气/法力不够）
-    *   **橙色背景** - 目标超出范围
-    *   **暗红色背景** - 不可用（条件不满足）
-4.  距离显示条颜色说明：
-    *   **红色** - 0-5码（近战范围）
-    *   **橙色** - 5-10码（决斗范围）
-    *   **黄色** - 10-28码（中距离）
-    *   **灰色** - >28码（超出范围）
-5.  命令：
-    *   `/pocspell [SpellID]` - 测试特定技能（详细信息）
+    *   **紫色背景** - 资源不足（怒气/法力/能量不够）
+    *   **暗红色背景** - 不可用（条件不满足，如错误姿态）
+4.  命令：
+    *   `/pocspell [SpellID]` - 测试特定技能并输出详细信息
     *   `/pocspell show` - 显示监控窗口
     *   `/pocspell hide` - 隐藏监控窗口
-    *   `/pocspell range` - 显示/隐藏距离显示条
-6.  示例：
-    *   `/pocspell 5308` (测试斩杀 Execute 详细信息)
-    *   `/pocspell hide` (隐藏监控窗口)
-    *   `/pocspell range` (切换距离显示)
+5.  测试施法状态：
+    *   施放一个技能时，观察控制台输出的施法信息
+    *   验证 `UnitCastingInfo` 和 `UnitChannelInfo` 的返回值
+    *   确认施法进度、剩余时间等数据的准确性
 
 ## 预期结果
-*   监控窗口实时显示技能可用性，颜色根据状态自动变化。
-*   **天赋 Proc 触发时**，对应技能框会变成**金色背景**，非常显眼。
-*   技能图标根据状态变灰/变亮，冷却时显示冷却动画。
-*   **距离显示条**实时显示与目标的距离区间（基于 `CheckInteractDistance` 估算）。
-*   命令测试模式能够正确输出技能名称、等级、资源消耗、冷却时间、距离范围等详细信息。
-*   能够检测到所有活动的天赋触发 Buff（猝死、血之气息、血腥冲锋等）。
+*   `IsUsableSpell` 能准确反映技能是否可用，区分"不可用"和"资源不足"
+*   `GetSpellCooldown` 返回的时间戳和持续时间准确无误
+*   施法状态检测能正确识别：
+    - 当前是否在施法
+    - 施法的技能名称和图标
+    - 施法进度百分比
+    - 剩余施法时间
+    - 是否可被打断
+*   监控窗口颜色变化与实际技能状态完全同步
+*   控制台输出的调试信息清晰易读，包含所有关键数据
 
 ## 技术说明
-### 距离检测原理
-WotLK 3.3.5 客户端无法获取精确的目标距离值，插件使用以下方法估算距离区间：
-*   `CheckInteractDistance(unit, 4)` - < 5 码（跟随范围）
-*   `CheckInteractDistance(unit, 3)` - < 10 码（决斗范围）
-*   `CheckInteractDistance(unit, 2)` - < 11.11 码（交易范围）
-*   `CheckInteractDistance(unit, 1)` - < 28 码（检查装备范围）
+### API 返回值说明
 
-参考了 HunterAssist 和 LibRangeCheck 的实现方式。
+#### IsUsableSpell(name)
+返回两个值：
+- `usable` (boolean) - 技能是否可用
+- `nomana` (boolean) - 是否因资源不足而不可用
+
+#### GetSpellCooldown(name)
+返回三个值：
+- `start` (number) - 冷却开始时间（GetTime()的时间戳）
+- `duration` (number) - 冷却持续时间（秒）
+- `enabled` (boolean) - 冷却是否启用
+
+计算剩余冷却时间：`remaining = (start + duration) - GetTime()`
+
+#### UnitCastingInfo("player")
+返回多个值（如果正在施法）：
+- `name` (string) - 技能名称
+- `text` (string) - 显示文本
+- `texture` (string) - 技能图标路径
+- `startTime` (number) - 施法开始时间（毫秒）
+- `endTime` (number) - 施法结束时间（毫秒）
+- `isTradeSkill` (boolean) - 是否为商业技能
+- `castID` (number) - 施法ID
+- `interrupt` (boolean) - 是否可被打断
+
+如果没有在施法，返回 nil。
+
+### 测试场景
+1. **冷却测试**：使用一个有明显CD的技能，观察冷却倒计时
+2. **资源测试**：消耗全部资源后尝试使用技能，验证 nomana 标志
+3. **施法测试**：施放一个读条技能，验证施法信息的准确性
+4. **引导测试**：施放引导法术（如奥术飞弹），验证 UnitChannelInfo
 
 ## 监控技能列表
 默认监控以下战士技能（可在 Core.lua 中修改 `monitorSpells` 表）：
-*   斩杀 (Execute) - 5308
-*   压制 (Overpower) - 7384  
-*   猛击 (Slam) - 1464
 *   致死打击 (Mortal Strike) - 12294
-*   英勇打击 (Heroic Strike) - 47450
+*   猛击 (Slam) - 1464
+*   斩杀 (Execute) - 5308
+*   利刃风暴 (Bladestorm) - 46924
+
