@@ -1,0 +1,95 @@
+name: Release WhackAMole
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 触发条件：推送 v1.0.0, v1.2.3 等格式的 tag
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Update TOC version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^## Version:.*/## Version: $VERSION/" src/WhackAMole.toc
+          
+      - name: Package addon
+        run: |
+          # 创建临时目录
+          mkdir -p build/WhackAMole
+          
+          # 复制 src 目录下的所有文件到 WhackAMole 目录
+          cp -r src/* build/WhackAMole/
+          
+          # 创建 zip 包
+          cd build
+          zip -r WhackAMole-${{ steps.version.outputs.version }}.zip WhackAMole
+          cd ..
+          
+          # 验证包内容
+          echo "Package contents:"
+          unzip -l build/WhackAMole-${{ steps.version.outputs.version }}.zip | head -20
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # 如果没有之前的 tag，获取所有提交
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # 获取两个 tag 之间的提交
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # 保存到文件
+          echo "$CHANGELOG" > changelog.txt
+          
+          # 输出预览
+          echo "Changelog preview:"
+          head -10 changelog.txt
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: WhackAMole ${{ steps.version.outputs.version }}
+          body_path: changelog.txt
+          draft: false
+          prerelease: false
+          
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/WhackAMole-${{ steps.version.outputs.version }}.zip
+          asset_name: WhackAMole-${{ steps.version.outputs.version }}.zip
+          asset_content_type: application/zip
+          
+      - name: Release Summary
+        run: |
+          echo "✅ Release created successfully!"
+          echo "📦 Package: WhackAMole-${{ steps.version.outputs.version }}.zip"
+          echo "🏷️ Tag: ${{ steps.version.outputs.tag }}"
+          echo "🔗 Release URL: ${{ steps.create_release.outputs.html_url }}"
