@@ -21,6 +21,7 @@ Classes\Warrior.lua
 Classes\Paladin.lua
 Classes\DeathKnight.lua
 Classes\Mage.lua
+Classes\Druid.lua
 
 # Engine
 Engine\SimCParser.lua
@@ -49,4 +50,8 @@ Presets\Warrior_Arms.lua
 Presets\Warrior_Fury.lua
 Presets\Warrior_Prot.lua
 Presets\Mage_Fire.lua
+Presets\Paladin_Retribution.lua
+Presets\Druid_Balance.lua
+Presets\Druid_Feral.lua
+Presets\DeathKnight_Frost.lua
 
