@@ -2,9 +2,13 @@
 
 ## 模块概述
 
-**文件**: `src/Core/DebugWindow.lua`
+**核心文件**:
+- `src/Core/Logger.lua` - 数据层：日志、性能、缓存统计
+- `src/UI/DebugWindow.lua` - UI层：窗口管理和控制
+- `src/UI/DebugTabs/LogTab.lua` - 日志页签
+- `src/UI/DebugTabs/PerfTab.lua` - 性能监控页签（整合性能、缓存、实时监控）
 
-调试窗口（DebugWindow）提供统一的可视化界面，集成日志记录、性能分析、实时监控和图表展示功能。
+调试系统采用模块化设计，Logger 负责数据采集和存储，DebugWindow 负责可视化展示。
 
 ---
 
@@ -25,48 +29,58 @@
 ┌─────────────────── WhackAMole 调试窗口 ────────────────────┐
 │ [启动监控] [停止监控] [重置统计] [导出日志]    ○ ╳       │
 ├────────────────────────────────────────────────────────────┤
-│ [日志] [性能分析] [缓存统计] [实时监控]                    │
+│ [日志] [性能监控]                                           │
 ├────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌─────────── 日志页签 ───────────┐                       │
+│  │ [复制所有日志]                  │                       │
 │  │ [15:32:45] [APL] Condition...  │                       │
 │  │ [15:32:46] [State] HP: 25k/30k │                       │
 │  │ ...                             │                       │
 │  └─────────────────────────────────┘                       │
 │                                                              │
-│  ┌──────── 性能分析页签 ──────────┐                       │
-│  │  帧耗时趋势 (最近 60s)          │                       │
-│  │  ████████▁▁▁███▁▁▁▁▁▁          │                       │
-│  │                                 │                       │
-│  │  模块占比饼图                   │                       │
-│  │   ● State 16% ● APL 32%        │                       │
+│  ┌──────── 性能监控页签 ──────────┐                       │
+│  │  ┌─ 实时监控 ─────────────┐    │                       │
+│  │  │ FPS: 58.3 | 平均: 2.1ms│    │                       │
+│  │  │ 峰值: 8.5ms | 内存: 1.2MB│   │                       │
+│  │  └─────────────────────────┘    │                       │
+│  │  ┌─ 缓存统计 ─────────────┐    │                       │
+│  │  │ 查询缓存: 80% (80/100)  │    │                       │
+│  │  │ 脚本缓存: 90% (90/100)  │    │                       │
+│  │  └─────────────────────────┘    │                       │
+│  │  ┌─ 性能统计 ─────────────┐    │                       │
+│  │  │ 总帧数: 1000            │    │                       │
+│  │  │ 总耗时: 2000ms          │    │                       │
+│  │  │ 模块平均: 2.0ms         │    │                       │
+│  │  └─────────────────────────┘    │                       │
+│  │  ┌─ 模块耗时分布 ─────────┐    │                       │
+│  │  │ State 快照: 平均 0.5ms...│   │                       │
+│  │  │ APL 执行: 平均 0.7ms...  │   │                       │
+│  │  └─────────────────────────┘    │                       │
 │  └─────────────────────────────────┘                       │
-│                                                              │
-│  ┌─────── 实时监控页签 ────────┐                          │
-│  │  当前帧率: 58.3 FPS           │                          │
-│  │  平均帧耗时: 2.13 ms          │                          │
-│  │  峰值帧耗时: 8.45 ms          │                          │
-│  │  缓存命中率: 80.1%            │                          │
-│  └───────────────────────────────┘                          │
 └────────────────────────────────────────────────────────────┘
-```
+Logger (数据层)
+- 日志记录（系统日志、APL日志、性能日志）
+- 性能统计（帧耗时、模块耗时）
+- 缓存统计（命中率、查询数）
+- 实时指标（FPS、内存使用）
 
----
-
-## 职责划分
-
-### 1. 窗口管理
+### DebugWindow (UI层)
 - 创建/显示/隐藏调试窗口
-- 页签切换（日志/性能/缓存/实时）
-- 窗口尺寸记忆
+- 页签切换（日志/性能监控）
+- 监控控制（启动/停止/重置）
+- 定时刷新（每 2 秒自动更新UI）
 
-### 2. 监控控制
-- 启动监控（注册事件、开始采集）
-- 停止监控（取消事件、停止采集）
-- 重置统计（清空数据、重置计数器）
+### LogTab (日志页签)
+- 日志滚动列表（支持分类过滤）
+- 复制日志功能
+- 颜色编码（错误/警告/系统等）
 
-### 3. 数据采集
-- 日志记录（Combat Log、系统日志）
+### PerfTab (性能监控页签)
+- 实时监控（FPS、帧耗时、内存）
+- 缓存统计（查询缓存、脚本缓存）
+- 性能统计（总帧数、总耗时、平均耗时）
+- 模块耗时分布（State、APL、预测、UI、音频g、系统日志）
 - 性能统计（帧耗时、模块耗时）
 - 缓存统计（命中率、查询数）
 - 实时指标（FPS、内存使用）
@@ -78,34 +92,36 @@
 
 ---
 
-## 核心数据结构
-
-### 监控状态
+## 核Logger 数据结构（Core/Logger.lua）
 
 ```lua
-DebugWindow = {
-    -- 窗口状态
-    frame = nil,              -- AceGUI Frame 实例
-    isMonitoring = false,     -- 是否正在监控
-    isVisible = false,        -- 窗口是否可见
-    currentTab = "log",       -- 当前页签 (log/perf/cache/realtime)
+Logger = {
+    enabled = false,          -- 是否启用日志记录
     
     -- 日志数据
     logs = {
         lines = {},           -- 日志行数组 [{timestamp, category, message}]
         maxLines = 1000,      -- 最大行数
-        filters = {}          -- 过滤器 {Combat=true, State=false, ...}
+        filters = {           -- 过滤器
+            Combat = true,
+            State = true,
+            APL = true,
+            Error = true,
+            Warn = true,
+            System = true,
+            Performance = true
+        }
     },
     
     -- 性能数据
     performance = {
         frameTimes = {},      -- 最近 300 帧的耗时 [1.2, 2.3, 1.8, ...]
         modules = {           -- 模块统计
-            state = { total = 0, max = 0, samples = {} },
-            apl = { total = 0, max = 0, samples = {} },
-            predict = { total = 0, max = 0, samples = {} },
-            ui = { total = 0, max = 0, samples = {} },
-            audio = { total = 0, max = 0, samples = {} }
+            state = { total = 0, max = 0, count = 0 },
+            apl = { total = 0, max = 0, count = 0 },
+            predict = { total = 0, max = 0, count = 0 },
+            ui = { total = 0, max = 0, count = 0 },
+            audio = { total = 0, max = 0, count = 0 }
         },
         frameCount = 0,
         totalTime = 0
@@ -123,6 +139,22 @@ DebugWindow = {
         avgFrameTime = 0,     -- 平均帧耗时
         peakFrameTime = 0,    -- 峰值帧耗时
         memoryUsage = 0,      -- 内存使用 (MB)
+        lastUpdate = 0        -- 上次更新时间
+    }
+}
+```
+
+### DebugWindow 状态（UI/DebugWindow.lua）
+
+```lua
+DebugWindow = {
+    frame = nil,              -- AceGUI Frame 实例
+    tabGroup = nil,           -- 页签容器
+    isVisible = false,        -- 窗口是否可见
+    currentTab = "log",       -- 当前页签 (log/perf)
+    btnStart = nil,           -- 启动按钮引用
+    btnStop = nil,            -- 停止按钮引用
+    updateTimer = nil         -- 自动刷新定时器 (2秒)   memoryUsage = 0,      -- 内存使用 (MB)
         lastUpdate = 0        -- 上次更新时间
     }
 }
@@ -154,10 +186,8 @@ function DebugWindow:Show()
     
     -- 1. 创建主窗口
     local frame = AceGUI:Create("Frame")
-    frame:SetTitle("WhackAMole 调试窗口")
-    frame:SetWidth(900)
-    frame:SetHeight(700)
-    frame:SetLayout("Flow")
+    frame:SetTitl日志", value = "log"},
+        {text = "性能监控", value = "perf
     frame:SetCallback("OnClose", function(widget)
         self:Hide()
     end)
@@ -190,15 +220,21 @@ function DebugWindow:Show()
     frame:AddChild(tabGroup)
     self.tabGroup = tabGroup
 end
-
-function DebugWindow:Hide()
-    if self.frame then
-        AceGUI:Release(self.frame)
-        self.frame = nil
-        self.isVisible = false
-    end
-end
-
+（委托给独立的Tab模块）
+    local success, err = pcall(function()
+        if tabName == "log" then
+            ns.DebugTabs.LogTab:Create(container)
+        elseif tabName == "perf" then
+            ns.DebugTabs.PerfTab:Create(container)
+        end
+    end)
+    
+    if not success then
+        -- 显示错误信息
+        local errorLabel = AceGUI:Create("Label")
+        errorLabel:SetText("|cffff0000错误: " .. tostring(err) .. "|r")
+        errorLabel:SetFullWidth(true)
+        container:AddChild(errorLabel
 --- 切换页签
 function DebugWindow:SelectTab(container, tabName)
     container:ReleaseChildren()
@@ -228,11 +264,7 @@ end
 
 ### 控制按钮组
 
-```lua
-function DebugWindow:CreateControlButtons(frame)
-    -- 1. 启动监控按钮
-    local btnStart = AceGUI:Create("Button")
-    btnStart:SetText("▶ 启动监控")
+```lua启动监控")
     btnStart:SetWidth(120)
     btnStart:SetCallback("OnClick", function()
         self:StartMonitoring()
@@ -242,7 +274,7 @@ function DebugWindow:CreateControlButtons(frame)
     
     -- 2. 停止监控按钮
     local btnStop = AceGUI:Create("Button")
-    btnStop:SetText("⏸ 停止监控")
+    btnStop:SetText("停止监控")
     btnStop:SetWidth(120)
     btnStop:SetDisabled(true)  -- 初始禁用
     btnStop:SetCallback("OnClick", function()
@@ -253,12 +285,16 @@ function DebugWindow:CreateControlButtons(frame)
     
     -- 3. 重置统计按钮
     local btnReset = AceGUI:Create("Button")
-    btnReset:SetText("🔄 重置统计")
+    btnReset:SetText("重置统计")
     btnReset:SetWidth(120)
     btnReset:SetCallback("OnClick", function()
         self:ResetStats()
     end)
     frame:AddChild(btnReset)
+    
+    -- 4. 导出日志按钮
+    local btnExport = AceGUI:Create("Button")
+    btnExport:SetText("t)
     
     -- 4. 导出日志按钮
     local btnExport = AceGUI:Create("Button")
@@ -275,87 +311,118 @@ end
 
 ## 启动/停止监控
 
-### 启动监控
-
-```lua
-function DebugWindow:StartMonitoring()
-    if self.isMonitoring then return end
+### 启动监not ns.Logger then return end
+    if ns.Logger.enabled then return end
     
-    self.isMonitoring = true
+    ns.Logger.enabled = true
     
-    -- 1. 注册事件
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    -- 更新按钮状态
+    if self.btnStart then
+        self.btnStart:SetDisabled(true)
+    end
+    if self.btnStop then
+        self.btnStop:SetDisabled(false)
+    end
     
-    -- 2. 启动定时器（实时数据更新）
-    self:ScheduleRepeatingTimer("UpdateRealtime", 0.5)
+    -- 启动定时器（每 2 秒刷新UI）
+    self:StartUpdateTimer()
     
-    -- 3. 更新按钮状态
-    self.btnStart:SetDisabled(true)
-    self.btnStop:SetDisabled(false)
+    -- 记录启动日志
+    ns.Logger:Log("System", "监控已启动")
     
-    -- 4. 记录日志
-    self:Log("System", "监控已启动")
+    -- 生成一些初始测试数据
+    for i = 1, 10 do
+        local frameTime = 1.5 + math.random() * 0.5
+        ns.Logger:RecordFrameTime(frameTime)
+        ns.Logger:RecordPerformance("state", frameTime * 0.3)
+        ns.Logger:RecordPerformance("apl", frameTime * 0.5)
+        ns.Logger:RecordPerformance("ui", frameTime * 0.2)
+    end
     
-    print("|cff00ff00WhackAMole: 监控已启动|r")
+    ns.Logger:UpdateCacheStats("query", 80, 20)
+    ns.Logger:UpdateCacheStats("script", 90, 10)
+    
+    -- 刷新当前页签以显示数据
+    self:RefreshCurrentTab()
 end
 
 function DebugWindow:StopMonitoring()
-    if not self.isMonitoring then return end
+    if not ns.Logger or not ns.Logger.enabled then return end
     
-    self.isMonitoring = false
+    ns.Logger.enabled = false
     
-    -- 1. 取消事件
-    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    
-    -- 2. 停止定时器
-    self:CancelAllTimers()
-    
-    -- 3. 更新按钮状态
-    self.btnStart:SetDisabled(false)
-    self.btnStop:SetDisabled(true)
-    
-    -- 4. 记录日志
-    self:Log("System", "监控已停止")
-    
-    print("|cffff0000WhackAMole: 监控已停止|r")
-end
-
-function DebugWindow:ResetStats()
-    -- 页签
+    -- 更新按钮状态
+    if self.btnStart then
+   性能监控页签（PerfTab）
 
 ### 页签布局
 
 ```lua
-function DebugWindow:CreatePerfTab(container)
-    container:ReleaseChildren()
+-- 文件: src/UI/DebugTabs/PerfTab.lua
+function PerfTab:Createrue)
+    end
     
-    -- 1. 关键指标摘要
-    local summaryGroup = AceGUI:Create("InlineGroup")
-    summaryGroup:SetTitle("关键指标")
-    summaryGroup:SetFullWidth(true)
-    summaryGroup:SetLayout("Flow")
+    -- 停止定时器
+    self:StopUpdateTimer()
     
-    local stats = self.performance
-    local avgTime = stats.frameCount > 0 and (stats.totalTime / stats.frameCount) or 0
+    -- 记录日志
+    ns.Logger:Log("System", "监控已停止")
+end
+
+function DebugWindow:ResetStats()
+    ns.Logger:Clear()
     
-    self:AddLabel(summaryGroup, string.format("总帧数: %d", stats.frameCount))
-    self:AddLabel(summaryGroup, string.format("平均耗时: %.2f ms", avgTime))
-    self:AddLabel(summaryGroup, string.format("峰值耗时: %.2f ms", 
-        self.realtime.peakFrameTime))
-    self:AddLabel(summaryGroup, string.format("当前 FPS: %.1f", self.realtime.fps))
+    -- 刷新当前页签
+    self:RefreshCurrentTab()
     
-    container:AddChild(summaryGroup)
+    ns.Logger:Log("System", "统计数据已重置")
+end
+
+--- 启动更新定时器
+function DebugWindow:StartUpdateTimer()
+    if self.updateTimer then return end
     
-    -- 2. 帧耗时趋势图（ASCII 艺术图或简化条形图）
-    local chartGroup = AceGUI:Create("InlineGroup")
-    chartGroup:SetTitle("帧耗时趋势（最近 300 帧）")
-    chartGroup:SetFullWidth(true)
-    chartGroup:SetLayout("Fill")
+    -- 4. 模块耗时分布
+    local moduleGroup = AceGUI:Create("InlineGroup")
+    moduleGroup:SetTitle("模块耗时分布")
+    moduleGroup:SetFullWidth(true)
+    moduleGroup:SetLayout("Flow")
     
-    local chartText = self:GenerateFrameTimeChart()
-    local chartLabel = AceGUI:Create("Label")
-    chartLabel:SetText(chartText)
-    chartLabel:SetFont("Fonts\\FRIZQT__.TTF", 10)
+    local modules = ns.Logger.performance.modules
+    local totalTime = ns.Logger.performance.totalTime
+    
+    if totalTime == 0 then
+        local emptyLabel = AceGUI:Create("Label")
+        emptyLabel:SetText("|cff808080暂无数据，请启动监控后会自动采集性能数据|r")
+        emptyLabel:SetFullWidth(true)
+        moduleGroup:AddChild(emptyLabel)
+    else
+        local moduleNames = {
+            {key = "state", name = "State 快照"},
+            {key = "apl", name = "APL 执行"},
+            {key = "predict", name = "预测计算"},
+            {key = "ui", name = "UI 更新"},
+            {key = "audio", name = "音频播放"}
+        }
+        
+        for _, m in ipairs(moduleNames) do
+            local data = modules[m.key]
+            local avgTime = data.count > 0 and (data.total / data.count) or 0
+            local pct = (data.total / totalTime) * 100
+            
+            local label = AceGUI:Create("Label")
+            label:SetText(string.format("%s: 平均 %.2f ms | 峰值 %.2f ms | 占比 %.1f%%", 
+                m.name, avgTime, data.max, pct))
+            label:SetWidth(400)
+            moduleGroup:AddChild(label)
+        end
+    end
+    
+    container:AddChild(moduleGroup)
+end
+```
+
+**注**：移除了 ASCII 趋势图以简化UI，改用固定 Label 显示模块统计信息。 chartLabel:SetFont("Fonts\\FRIZQT__.TTF", 10)
     chartLabel:SetFullWidth(true)
     
     chartGroup:AddChild(chartLabel)
@@ -427,135 +494,54 @@ function DebugWindow:GenerateModuleStats()
     local totalTime = self.performance.totalTime
     
     if totalTime == 0 then
-        return "暂无数据"
-    end
-    
-    local lines = {}
-    table.insert(lines, "模块       平均耗时   峰值耗时   占比")
-    table.insert(lines, "─────────────────────────────────────────")
-    
-    local moduleNames = {
-        {key = "state", name = "State 快照"},
-        {key = "apl", name = "APL 执行 "},
-        {key = "predict", name = "预测计算 "},
-        {key = "ui", name = "UI 更新  "},
-        {key = "audio", name = "音频播放 "}
-    }
-    
-    for _, m in ipairs(moduleNames) do
-        local data = modules[m.key]
-        local avgTime = self.performance.frameCount > 0 
-            and (data.total / self.performance.frameCount) or 0
-        local pct = (data.total / totalTime) * 100
-        
-        table.insert(lines, string.format(
-            "%s  %.2f ms   %.2f ms   %.1f%%",
-            m.name, avgTime, data.max, pct
-        ))
-    end
-    
-    return table.concat(lines, "\n")
-end
+## Logger API
+
+### 日志记录
+
+```lua
+-- 添加日志
+ns.Logger:Log(category, message)
+-- 示例
+ns.Logger:Log("APL", "Condition evaluated to false")
+ns.Logger:Log("Error", "Failed to parse condition")
+ns.Logger:Log("State", "Buff cache miss: hot_streak")
+```
+
+### 性能统计
+
+```lua
+-- 记录模块耗时
+ns.Logger:RecordPerformance(moduleName, elapsedTime)
+-- 示例
+local startTime = debugprofilestop()
+-- ... 执行代码 ...
+local elapsed = debugprofilestop() - startTime
+ns.Logger:RecordPerformance("state", elapsed)
+
+-- 记录帧耗时
+ns.Logger:RecordFrameTime(frameTime)
+```
+
+### 缓存统计
+
+```lua
+-- 更新缓存统计
+ns.Logger:UpdateCacheStats(cacheType, hits, misses)
+-- 示例
+ns.Logger:UpdateCacheStats("query", 80, 20)
+ns.Logger:UpdateCacheStats("script", 90, 10)
+```
+
+### 清空数据
+
+```lua
+-- 清空所有统计数据
+ns.Logger:Clear()
 ```
 
 ---
 
-## 实时监控页签
-
-### 实时指标仪表盘
-
-```lua
-function DebugWindow:CreateRealtimeTab(container)
-    container:ReleaseChildren()
-    
-    -- 1. FPS 指示器
-    local fpsGroup = AceGUI:Create("InlineGroup")
-    fpsGroup:SetTitle("帧率 (FPS)")
-    fpsGroup:SetFullWidth(true)
-    
-    local fpsLabel = AceGUI:Create("Label")
-    fpsLabel:SetText(string.format("|cff00ff00%.1f FPS|r", self.realtime.fps))
-    fpsLabel:SetFont("Fonts\\FRIZQT__.TTF", 24)
-    fpsLabel:SetFullWidth(true)
-    
-    fpsGroup:AddChild(fpsLabel)
-    container:AddChild(fpsGroup)
-    
-    -- 2. 帧耗时指示器
-    local frameTimeGroup = AceGUI:Create("InlineGroup")
-    frameTimeGroup:SetTitle("帧耗时")
-    frameTimeGroup:SetFullWidth(true)
-    frameTimeGroup:SetLayout("Flow")
-    
-    self:AddLabelWithProgress(frameTimeGroup, "平均", 
-        self.realtime.avgFrameTime, 5.0, "ms")
-    self:AddLabelWithProgress(frameTimeGroup, "峰值", 
-        self.realtime.peakFrameTime, 10.0, "ms")
-    
-    container:AddChild(frameTimeGroup)
-    
-    -- 3. 缓存命中率
-    local cacheGroup = AceGUI:Create("InlineGroup")
-    cacheGroup:SetTitle("缓存效率")
-    cacheGroup:SetFullWidth(true)
-    cacheGroup:SetLayout("Flow")
-    
-    local queryTotal = self.cache.query.hits + self.cache.query.misses
-    local queryRate = queryTotal > 0 
-        and (self.cache.query.hits / queryTotal * 100) or 0
-    
-    local scriptTotal = self.cache.script.hits + self.cache.script.misses
-    local scriptRate = scriptTotal > 0 
-        and (self.cache.script.hits / scriptTotal * 100) or 0
-    
-    self:AddLabelWithProgress(cacheGroup, "查询缓存", queryRate, 100, "%")
-    self:AddLabelWithProgress(cacheGroup, "脚本缓存", scriptRate, 100, "%")
-    
-    container:AddChild(cacheGroup)
-    
-    -- 4. 内存使用
-    local memGroup = AceGUI:Create("InlineGroup")
-    memGroup:SetTitle("内存使用")
-    memGroup:SetFullWidth(true)
-    
-    local memLabel = AceGUI:Create("Label")
-    memLabel:SetText(string.format("%.2f MB", self.realtime.memoryUsage))
-    memLabel:SetFullWidth(true)
-    
-    memGroup:AddChild(memLabel)
-    container:AddChild(memGroup)
-end
-
---- 创建带进度条的标签
-function DebugWindow:AddLabelWithProgress(container, label, value, maxValue, unit)
-    local group = AceGUI:Create("SimpleGroup")
-    group:SetLayout("Flow")
-    group:SetFullWidth(true)
-    
-    local textLabel = AceGUI:Create("Label")
-    textLabel:SetText(string.format("%s: %.2f %s", label, value, unit))
-    textLabel:SetWidth(200)
-    group:AddChild(textLabel)
-    
-    -- 进度条（用颜色编码的文本模拟）
-    local pct = math.min(value / maxValue, 1.0)
-    local barLength = 30
-    local filled = math.floor(pct * barLength)
-    local bar = string.rep("█", filled) .. string.rep("░", barLength - filled)
-    
-    -- 根据值设置颜色
-    local color = "|cff00ff00"  -- 绿色
-    if pct > 0.8 then
-        color = "|cffff0000"  -- 红色
-    elseif pct > 0.6 then
-        color = "|cffffa500"  -- 橙色
-    end
-    
-    local barLabel = AceGUI:Create("Label")
-    barLabel:SetText(color .. bar .. "|r")
-    barLabel:SetWidth(200)
-    group:AddChild(barLabel)
-    
+##  
     container:AddChild(group)
 end
 
@@ -638,35 +624,45 @@ function DebugWindow:UpdateRealtime()
 
 4. **窗口响应**
    - 大量日志时（>5000 行）滚动可能卡顿
-   - 建议定期重置统计
+   -Logger.enabled = false（默认）
+- 零开销（所有记录函数直接返回）
 
----
+### Logger.enabled = true
+- 数据采集: ~0.1-0.3ms/帧（记录性能数据）
+- 日志记录: ~0.05ms/条（仅在需要时）
+- 实时更新: ~0.1ms/2s（定时器开销）
+- **总开销**: ~0.1-0.4ms/帧
 
-## 相关文档
-- [生命周期与主控制器](01_Core_Lifecycle.md)
-- [状态快照系统](07_State.md)
-- [SimC 解析器](08_SimCParser.md)
-- [架构图与流程图](00_Architecture_Diagrams.md)
-
----
-
+### 窗口显示时
+- 页签刷新: ~1-2ms（每 2 秒自动刷新）
+- UI 渲染: ~1-3ms（取决于日志数量
 ## 日志记录功能
 
 ---
 
 ## 命令行集成
 
-### /wam debug 命令
+### Logger (Core/Logger.lua)
+**依赖**: 无（纯数据层）
 
-```lua
-function WhackAMole:OnChatCommand(input)
-    local command, args = input:match("^(%S*)%s*(.-)$")
-    
-    if command == "debug" then
-        -- 直接显示调试窗口，所有控制在窗口内完成
-        if ns.DebugWindow then
-            ns.DebugWindow:Show()
-        else
+### DebugWindow (UI/DebugWindow.lua)
+**依赖**:
+- AceGUI-3.0 (窗口界面)
+- C_Timer (定时器)
+- Logger (数据层)
+- LogTab、PerfTab (页签模块)
+
+### LogTab (UI/DebugTabs/LogTab.lua)
+**依赖**:
+- AceGUI-3.0
+- Logger
+
+### PerfTab (UI/DebugTabs/PerfTab.lua)
+**依赖**:
+- AceGUI-3.0
+- Logger
+
+### 被依赖se
             self:Print("调试窗口未初始化")
         end
         
@@ -761,22 +757,22 @@ ns.DebugWindow:Log("State", string.format(
 
 -- 记录 Buff 查询
 ns.DebugWindow:Log("State", string.format(
-    "Buff check: %s -> %s",
-    buffName,
-    found and "UP" or "DOWN"
-))
-```
-
----
-
-## 已知限制
-
-1. **性能开销**
-   - 启用监控后每帧约增加 0.5-1ms 开销
-   - COMBAT_LOG 事件密集时开销更高
+    "实时更新频率**
+   - 当前 2 秒更新一次UI
+   - 可根据需要调整刷新频率
 
 2. **内存占用**
-   - 1000 行日志约占用 100-200KB
+   - 300 帧耗时数据 (~2.4KB)
+   - 1000 行日志 (~100-200KB)
+   - 总计约 ~200-300KB（可接受）
+
+3. **窗口响应**
+   - 大量日志时（>1000 行）滚动可能卡顿
+   - 建议定期使用"重置统计"按钮
+
+4. **测试数据**
+   - 当前使用模拟数据生成测试
+   - 未来需集成真实的性能采集约占用 100-200KB
    - 长时间开启可能累积较多内存
 
 3. **事件过滤**
@@ -791,18 +787,41 @@ ns.DebugWindow:Log("State", string.format(
 
 ## 依赖关系
 
-### 依赖的库
-- AceEvent-3.0 (事件监听)
-- AceGUI-3.0 (窗口界面)
-- AceTimer-3.0 (定时器)
+###命令行集成
 
-### 被依赖的模块
-- Core (命令行调用 `/wam debug`)
-- 所有模块 (可选使用 DebugWindow 记录调试信息)
+### /wam debug 命令
 
----
+```lua
+function WhackAMole:OnChatCommand(input)
+    local command, args = input:match("^(%S*)%s*(.-)$")
+    
+    if command == "debug" then
+        -- 直接显示调试窗口，所有控制在窗口内完成
+        if ns.DebugWindow then
+            ns.DebugWindow:Show()
+        end
+        
+    else
+        -- 帮助信息
+        self:Print("WhackAMole 命令:")
+        self:Print("  /wam debug    - 打开调试窗口")
+        self:Print("  /wam lock     - 锁定/解锁网格")
+        self:Print("  /wam state    - 显示状态快照")
+    end
+end数据分离**
+   - Logger 为纯数据层，无UI依赖
+   - DebugWindow 为纯UI层，无业务逻辑
+   - 模块化设计便于维护和测试
 
-## 相关文档
-- [生命周期与主控制器](01_Core_Lifecycle.md)
-- [状态快照系统](07_State.md)
-- [SimC 解析器](08_SimCParser.md)
+2. **自动刷新**
+   - 监控启动后每 2 秒自动刷新UI
+   - 停止监控后停止刷新以节省资源
+
+3. **清洁输出**
+   - 移除了所有调试 print 语句
+   - 错误信息直接显示在UI中
+
+4. **简化展示**
+   - 移除了 ASCII 趋势图
+   - 使用固定 Label 显示模块统计
+   - 合并了实时监控、缓存、性能到一个页签
