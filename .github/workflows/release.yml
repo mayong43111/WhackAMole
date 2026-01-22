@@ -51,45 +51,38 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           
           if [ -z "$PREV_TAG" ]; then
-            # 如果没有之前的 tag，获取所有提交
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+            # 如果没有之前的 tag，获取最近10条提交
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges -10)
           else
             # 获取两个 tag 之间的提交
             CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
           fi
           
           # 保存到文件
-          echo "$CHANGELOG" > changelog.txt
+          echo "## 更新内容" > changelog.txt
+          echo "" >> changelog.txt
+          echo "$CHANGELOG" >> changelog.txt
+          echo "" >> changelog.txt
+          echo "---" >> changelog.txt
+          echo "📦 下载 \`WhackAMole-${{ steps.version.outputs.version }}.zip\` 并解压到魔兽世界 \`Interface/AddOns\` 目录" >> changelog.txt
           
           # 输出预览
           echo "Changelog preview:"
-          head -10 changelog.txt
+          cat changelog.txt
           
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          release_name: WhackAMole ${{ steps.version.outputs.version }}
+          name: WhackAMole ${{ steps.version.outputs.version }}
           body_path: changelog.txt
+          files: ./build/WhackAMole-${{ steps.version.outputs.version }}.zip
           draft: false
           prerelease: false
-          
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/WhackAMole-${{ steps.version.outputs.version }}.zip
-          asset_name: WhackAMole-${{ steps.version.outputs.version }}.zip
-          asset_content_type: application/zip
           
       - name: Release Summary
         run: |
           echo "✅ Release created successfully!"
           echo "📦 Package: WhackAMole-${{ steps.version.outputs.version }}.zip"
           echo "🏷️ Tag: ${{ steps.version.outputs.tag }}"
-          echo "🔗 Release URL: ${{ steps.create_release.outputs.html_url }}"
