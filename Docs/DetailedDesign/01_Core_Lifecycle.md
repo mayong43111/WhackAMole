@@ -44,9 +44,7 @@ CONFIG = {
         "SPELL_CAST_SUCCESS",
         "SPELL_INTERRUPT",
         "SPELL_AURA_APPLIED",
-        "SPELL_AURA_REMOVED",
-        "UNIT_SPELLCAST_SUCCEEDED",
-        "UNIT_SPELLCAST_INTERRUPTED"
+        "SPELL_AURA_REMOVED"
     }
 }
 ```
@@ -65,16 +63,15 @@ WhackAMole.db              -- AceDB 数据库引用
 WhackAMole.perfStats = {
     frameCount = 0,
     totalTime = 0,
-    maxFrameTime = 0,
-    lastResetTime = 0,
-    -- 模块级统计
-    state_time = 0,
-    apl_time = 0,
-    predict_time = 0,
-    ui_time = 0,
-    audio_time = 0,
-    -- 帧耗时分布
-    frameTimes = {}  -- 最近 1000 帧的耗时记录
+    maxTime = 0,
+    frameTimes = {},  -- 最近 1000 帧的耗时记录
+    modules = {
+        state = { total = 0, max = 0 },
+        apl = { total = 0, max = 0 },
+        predict = { total = 0, max = 0 },
+        ui = { total = 0, max = 0 },
+        audio = { total = 0, max = 0 }
+    }
 }
 ```
 
@@ -85,45 +82,48 @@ WhackAMole.perfStats = {
 ### 1. OnInitialize (插件加载时)
 
 ```
-1. 检查依赖库（AceDB-3.0, AceConfig-3.0 等）
+1. 检查依赖库（AceDB-3.0）
 2. 初始化 AceDB 数据库
-3. 注册配置界面到 Blizzard UI
-4. 初始化子系统：
-   - Logger
-   - Constants
-   - SpecDetection
+3. 初始化子模块：
    - ProfileManager
-   - ActionMap
+   - UI.Grid
    - Audio
-   - Hooks
+4. 注册配置界面到 Blizzard UI
 5. 注册斜杠命令 /wam
+6. 初始化事件节流系统
+7. 注册战斗事件 (COMBAT_LOG_EVENT_UNFILTERED)
+8. 注册初始化事件 (PLAYER_ENTERING_WORLD)
+9. 初始化专精检测系统
 ```
 
-### 2. OnEnable (角色登录后)
+### 2. OnPlayerEnteringWorld (玩家进入世界)
 
 ```
-1. 检测职业与专精
-2. 延迟 2 秒后检测天赋（等待 API 就绪）
-3. 加载当前配置：
-   - 优先用户配置
-   - 回退内置配置
-4. 编译 APL 条件表达式
-5. 初始化 UI 网格
-6. 注册游戏事件：
-   - PLAYER_REGEN_DISABLED (进入战斗)
-   - PLAYER_REGEN_ENABLED (脱离战斗)
-   - PLAYER_TALENT_UPDATE (天赋变更)
-   - ACTIVE_TALENT_GROUP_CHANGED (切换天赋方案)
-7. 启动帧更新循环
+1. 取消 PLAYER_ENTERING_WORLD 事件注册（避免重复触发）
+2. 延迟 2 秒等待天赋 API 就绪
+3. 检测专精 ID（最多重试 10 次）
+4. 初始化配置：
+   - 加载职业技能数据
+   - 重建 ActionMap
+   - 选择匹配的配置文件
+   - 自动选择或使用上次配置
+5. 切换到选定配置：
+   - 清空脚本编译缓存
+   - 创建/调整 UI 网格
+   - 编译 APL
+6. 帧更新循环自动运行（由 OnUpdate 帧驱动）
 ```
 
-### 3. OnDisable (插件卸载时)
+### 3. 配置初始化 (InitializeProfile)
 
 ```
-1. 取消所有注册的事件
-2. 停止帧更新循环
-3. 清理性能统计
-4. 注销钩子
+1. 获取当前职业和专精
+2. 加载对应的技能数据模块
+3. 获取职业可用配置列表
+4. 尝试恢复上次使用的配置
+5. 如果专精不匹配，自动选择匹配的配置
+6. 如果没有匹配配置，使用第一个可用配置
+7. 调用 SwitchProfile 切换配置
 ```
 
 ---
@@ -208,30 +208,44 @@ end
 ### 实现机制
 
 ```lua
-local lastEventTime = 0
-local eventQueue = {}
-
-function WhackAMole:OnCombatLogEvent(...)
-    local timestamp, event, _, sourceGUID = ...
+function WhackAMole:OnCombatLogEvent(event, ...)
+    local timestamp, eventType, _, sourceGUID = CombatLogGetCurrentEventInfo()
     
-    -- 1. 仅处理玩家事件
+    -- 1. 仅处理玩家相关事件
     if sourceGUID ~= UnitGUID("player") then
         return
     end
     
-    -- 2. 检查节流间隔
+    -- 2. 检查是否为优先级事件
+    local isPriority = self:IsPriorityEvent(eventType)
+    
+    -- 3. 检查节流间隔
     local now = GetTime()
-    if now - lastEventTime < CONFIG.throttleInterval then
-        -- 3. 非优先级事件延迟处理
-        if not tContains(CONFIG.priorityEvents, event) then
-            tinsert(eventQueue, {timestamp, ...})
-            return
+    local timeSinceLastUpdate = now - self.eventThrottle.lastUpdate
+    
+    if isPriority then
+        -- 优先级事件立即加入优先队列
+        table.insert(self.eventThrottle.priorityQueue, {
+            timestamp = timestamp,
+            eventType = eventType,
+            destName = destName
+        })
+        
+        -- 如果距离上次更新超过节流间隔，立即触发更新
+        if timeSinceLastUpdate >= CONFIG.throttleInterval then
+            self:ProcessPendingEvents()
+            self.eventThrottle.lastUpdate = now
+        end
+    else
+        -- 普通事件加入待处理队列
+        if timeSinceLastUpdate >= CONFIG.throttleInterval then
+            table.insert(self.eventThrottle.pendingEvents, {
+                timestamp = timestamp,
+                eventType = eventType,
+                destName = destName
+            })
         end
     end
-    
-    -- 4. 立即处理优先级事件
-    lastEventTime = now
-    self:HandleCombatEvent(event, ...)
 end
 ```
 
@@ -244,35 +258,37 @@ end
 | 命令 | 功能 | 参数 |
 |------|------|------|
 | `/wam` | 打开配置面板 | - |
-| `/wam debug` | 切换调试模式 | - |
-| `/wam state` | 输出状态快照 | - |
-| `/wam eval <condition>` | 测试 APL 条件 | 条件表达式 |
-| `/wam profile` | 显示性能统计 | - |
-| `/wam profile reset` | 重置性能统计 | - |
+| `/wam lock` | 锁定框架 | - |
+| `/wam unlock` | 解锁框架 | - |
+| `/wam debug` | 显示调试窗口 | - |
 
 ### 命令处理流程
 
 ```lua
-function WhackAMole:HandleSlashCommand(input)
-    -- 解析命令
-    local cmd, args = self:GetArgs(input, 2)
+function WhackAMole:OnChatCommand(input)
+    local command, args = input:match("^(%S*)%s*(.-)$")
     
-    -- 路由到处理函数
-    if cmd == "debug" then
-        self:ToggleDebug()
-    elseif cmd == "state" then
-        self:PrintStateSnapshot()
-    elseif cmd == "eval" then
-        self:EvaluateCondition(args)
-    elseif cmd == "profile" then
-        if args == "reset" then
-            self:ResetPerfStats()
+    if command == "lock" then
+        ns.UI.Grid:SetLock(true)
+        self:Print("框架已锁定")
+    elseif command == "unlock" then
+        ns.UI.Grid:SetLock(false)
+        self:Print("框架已解锁")
+    elseif command == "debug" then
+        -- 显示调试窗口
+        if ns.DebugWindow then
+            ns.DebugWindow:Show()
         else
-            self:ShowProfileStats()
+            self:Print("调试窗口未初始化")
         end
+    elseif command == "" then
+        -- 打开配置界面
+        LibStub("AceConfigDialog-3.0"):Open("WhackAMole")
     else
-        -- 默认：打开配置面板
-        InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
+        -- 显示帮助
+        self:Print("可用命令:")
+        self:Print("  /wam lock/unlock - 锁定/解锁框架")
+        self:Print("  /wam debug - 显示调试窗口")
     end
 end
 ```
@@ -382,14 +398,17 @@ end
 1. **帧更新间隔固定**
    - 当前为 50ms (20 FPS)，未根据战斗强度动态调整
 
-2. **事件节流粒度较粗**
+2. **事件节流机制**
    - 16ms 间隔可能在极高 APM 场景下丢失部分事件
+   - 仅注册 COMBAT_LOG_EVENT_UNFILTERED，依赖单一事件源
 
 3. **性能统计开销**
    - debugprofilestop() 本身有微小开销
+   - 保留最近 1000 帧记录占用内存
 
-4. **配置热切换不完全**
-   - 切换配置后部分状态可能需要重载 UI
+4. **专精检测延迟**
+   - 登录后延迟 2 秒检测天赋，可能导致初始化稍慢
+   - 最多重试 10 次，极端情况可能超时
 
 ---
 
