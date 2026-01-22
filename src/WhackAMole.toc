@@ -29,7 +29,6 @@ Engine\State.lua
 
 # Core
 Core\SpecDetection.lua
-Core\DebugWindow.lua
 Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
@@ -38,6 +37,9 @@ Core\Hooks.lua
 Core.lua
 
 # UI
+UI\DebugTabs\LogTab.lua
+UI\DebugTabs\PerfTab.lua
+UI\DebugWindow.lua
 UI\Grid.lua
 UI\Options.lua
 

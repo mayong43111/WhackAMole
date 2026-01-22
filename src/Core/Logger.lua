@@ -1,80 +1,175 @@
-local addon, ns = ...
-ns.Logger = {}
-local L = ns.Logger
+local _, ns = ...
 
-L.enabled = false
-L.lines = {}
-L.maxLines = 1000 -- Hard limit to prevent memory issues
+-- =========================================================================
+-- Logger - 日志记录模块
+-- =========================================================================
+-- 负责日志、性能数据的记录，内部判断是否启用
 
+local Logger = {}
+ns.Logger = Logger
 
--- Mixin AceEvent for combat log listening
-LibStub("AceEvent-3.0"):Embed(L)
+-- 日志状态
+Logger.enabled = false  -- 是否启用日志记录
 
-function L:Start()
-    -- Clear previous logs explicitly
-    self.lines = {}
-    self.enabled = true
-    
-    -- Register Combat Log to capture precise Spell IDs
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    
-    self:Log("Logging started.")
-    print("|cff00ff00WhackAMole Logging Started.|r")
-end
+-- 日志数据
+Logger.logs = {
+    lines = {},           -- 日志行数组 [{timestamp, category, message}]
+    maxLines = 1000,      -- 最大行数
+    filters = {           -- 过滤器
+        Combat = true,
+        State = true,
+        APL = true,
+        Error = true,
+        Warn = true,
+        System = true,
+        Performance = true
+    }
+}
 
-function L:Stop()
-    self.enabled = false
-    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    self:Log("Logging stopped.")
-    print("|cffff0000WhackAMole Logging Stopped.|r Type /wam log show to view.")
-end
+-- 性能数据
+Logger.performance = {
+    frameTimes = {},      -- 最近 300 帧的耗时
+    modules = {           -- 模块统计
+        state = { total = 0, max = 0, count = 0 },
+        apl = { total = 0, max = 0, count = 0 },
+        predict = { total = 0, max = 0, count = 0 },
+        ui = { total = 0, max = 0, count = 0 },
+        audio = { total = 0, max = 0, count = 0 }
+    },
+    frameCount = 0,
+    totalTime = 0
+}
 
-function L:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, spellId, spellName, spellSchool, ...)
+-- 缓存统计
+Logger.cache = {
+    query = { hits = 0, misses = 0 },
+    script = { hits = 0, misses = 0 }
+}
+
+-- 实时指标
+Logger.realtime = {
+    fps = 0,
+    avgFrameTime = 0,
+    peakFrameTime = 0,
+    memoryUsage = 0,
+    lastUpdate = 0
+}
+
+--- 添加日志行
+function Logger:Log(category, message)
     if not self.enabled then return end
     
-    -- Debug: Bypass Source Filter to see if ANY events are coming
-    -- Matches ANY spell cast (player or npc) just to verify the event structure
-    if eventType == "SPELL_CAST_SUCCESS" then
-         local src = sourceName or "Unknown"
-         local dst = destName or "Unknown"
-         self:Log(string.format("[CLEU] %s: %s (ID:%s) [%s -> %s]", eventType, tostring(spellName), tostring(spellId), src, dst))
+    local timestamp = date("%H:%M:%S")
+    table.insert(self.logs.lines, {
+        timestamp = timestamp,
+        category = category,
+        message = message
+    })
+    
+    -- 限制最大行数
+    if #self.logs.lines > self.logs.maxLines then
+        table.remove(self.logs.lines, 1)
+    end
+    
+    -- 通知 DebugWindow 刷新（如果正在显示日志页签）
+    if ns.DebugWindow and ns.DebugWindow.isVisible and ns.DebugWindow.currentTab == "log" then
+        ns.DebugWindow:RefreshCurrentTab()
     end
 end
 
-
-function L:Log(msg)
+--- 记录性能数据
+function Logger:RecordPerformance(moduleName, elapsedTime)
     if not self.enabled then return end
-    -- Note: date("%H:%M:%S") gives real time. In detailed analysis, state.now might also be useful.
-    local time = date("%H:%M:%S") 
-    table.insert(self.lines, string.format("[%s] %s", time, msg))
     
-    if #self.lines > self.maxLines then
-        table.remove(self.lines, 1)
+    local moduleData = self.performance.modules[moduleName]
+    if not moduleData then return end
+    
+    moduleData.total = moduleData.total + elapsedTime
+    moduleData.count = moduleData.count + 1
+    if elapsedTime > moduleData.max then
+        moduleData.max = elapsedTime
+    end
+    
+    self.performance.frameCount = self.performance.frameCount + 1
+    self.performance.totalTime = self.performance.totalTime + elapsedTime
+end
+
+--- 记录帧耗时
+function Logger:RecordFrameTime(frameTime)
+    if not self.enabled then return end
+    
+    table.insert(self.performance.frameTimes, frameTime)
+    
+    if #self.performance.frameTimes > 300 then
+        table.remove(self.performance.frameTimes, 1)
     end
 end
 
-function L:Show()
-    local AceGUI = LibStub("AceGUI-3.0")
-    if not AceGUI then
-        print("WhackAMole: AceGUI-3.0 not found.")
-        return
+--- 更新缓存统计
+function Logger:UpdateCacheStats(cacheType, hits, misses)
+    if not self.enabled then return end
+    
+    if cacheType == "query" then
+        self.cache.query.hits = hits or self.cache.query.hits
+        self.cache.query.misses = misses or self.cache.query.misses
+    elseif cacheType == "script" then
+        self.cache.script.hits = hits or self.cache.script.hits
+        self.cache.script.misses = misses or self.cache.script.misses
     end
-    
-    local frame = AceGUI:Create("Frame")
-    frame:SetTitle("WhackAMole Debug Log")
-    frame:SetLayout("Fill")
-    frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
-    
-    local edit = AceGUI:Create("MultiLineEditBox")
-    edit:SetLabel("Log Output (Ctrl+A, Ctrl+C to copy)")
-    
-    local text = table.concat(self.lines, "\n")
-    if text == "" then text = "No logs recorded." end
-    
-    edit:SetText(text)
-    edit:SetFullWidth(true)
-    edit:SetFullHeight(true)
-    edit:DisableButton(true) -- Hide the "Accept" button
-    
-    frame:AddChild(edit)
 end
+
+--- 清空所有数据
+function Logger:Clear()
+    self.logs.lines = {}
+    self.performance.frameTimes = {}
+    for _, modData in pairs(self.performance.modules) do
+        modData.total = 0
+        modData.max = 0
+        modData.count = 0
+    end
+    self.performance.frameCount = 0
+    self.performance.totalTime = 0
+    self.cache.query.hits = 0
+    self.cache.query.misses = 0
+    self.cache.script.hits = 0
+    self.cache.script.misses = 0
+    self.realtime.peakFrameTime = 0
+end
+
+--- 错误日志
+function Logger:Error(category, message)
+    self:Log("Error", string.format("[%s] %s", category, message))
+end
+
+--- 警告日志
+function Logger:Warn(category, message)
+    self:Log("Warn", string.format("[%s] %s", category, message))
+end
+
+--- 调试日志
+function Logger:Debug(category, message)
+    self:Log(category, message)
+end
+
+--- 启动监控（兼容旧命令）
+function Logger:Start()
+    if ns.DebugWindow then
+        ns.DebugWindow:StartMonitoring()
+    end
+end
+
+--- 停止监控（兼容旧命令）
+function Logger:Stop()
+    if ns.DebugWindow then
+        ns.DebugWindow:StopMonitoring()
+    end
+end
+
+--- 显示窗口（兼容旧命令）
+function Logger:Show()
+    if ns.DebugWindow then
+        ns.DebugWindow:Show()
+    end
+end
+
+print("|cff00ff00[WhackAMole] Logger module loaded|r")
