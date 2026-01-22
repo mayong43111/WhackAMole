@@ -126,15 +126,22 @@ function ns.UI.Grid:Create(layout, config, restoreAssignments)
         print("[WhackAMole] Grid: Hiding existing container for rebuild")
     end
     
-    -- 清空所有现有按钮的状态（在创建前）
-    if not InCombatLockdown() and state.slots then
-        for i, btn in pairs(state.slots) do
-            if btn then
-                btn:SetAttribute("type", nil)
-                btn:SetAttribute("spell", nil)
-                if btn.icon then
-                    btn.icon:SetTexture(nil)
-                    btn.icon:SetAlpha(0)
+    -- 清空并隐藏所有现有按钮（在创建前）
+    if not InCombatLockdown() then
+        -- 隐藏所有可能存在的旧按钮（支持最多20个槽位）
+        for i = 1, 20 do
+            local btnName = "WhackAMoleBtn" .. i
+            local oldBtn = _G[btnName]
+            if oldBtn then
+                oldBtn:Hide()
+                oldBtn:SetAttribute("type", nil)
+                oldBtn:SetAttribute("spell", nil)
+                if oldBtn.icon then
+                    oldBtn.icon:SetTexture(nil)
+                    oldBtn.icon:SetAlpha(0)
+                end
+                if oldBtn.ghost then
+                    oldBtn.ghost:SetAlpha(0)
                 end
             end
         end
