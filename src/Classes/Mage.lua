@@ -26,6 +26,13 @@ local mageSpells = {
     [2139]   = { key = "Counterspell",        sound = "Counterspell.ogg" },
     [118]    = { key = "Polymorph",           sound = "Polymorph.ogg" },
     [55342]  = { key = "MirrorImage",         sound = "MirrorImage.ogg" },
+    [1463]   = { key = "ManaShield",          sound = "ManaShield.ogg" },
+    [7301]   = { key = "FrostArmor",          sound = "FrostArmor.ogg" },
+    [30482]  = { key = "MoltenArmor",         sound = "MoltenArmor.ogg" },
+    [6117]   = { key = "MageArmor",           sound = "MageArmor.ogg" },
+    [66]     = { key = "Invisibility",        sound = "Invisibility.ogg" },
+    [30449]  = { key = "Spellsteal",          sound = "Spellsteal.ogg" },
+    [475]    = { key = "RemoveCurse",         sound = "RemoveCurse.ogg" },
     
     -- Fire 专精
     [55360]  = { key = "LivingBomb",          sound = "LivingBomb.ogg" },
@@ -39,10 +46,24 @@ local mageSpells = {
     [22959]  = { key = "ImprovedScorch" },    -- Debuff
     
     -- Frost 专精
+    [116]    = { key = "Frostbolt",           sound = "Frostbolt.ogg" },
+    [30455]  = { key = "IceLance",            sound = "IceLance.ogg" },
+    [122]    = { key = "FrostNova",           sound = "FrostNova.ogg" },
+    [11958]  = { key = "ColdSnap",            sound = "ColdSnap.ogg" },
+    [31687]  = { key = "SummonWaterElemental", sound = "SummonWaterElemental.ogg" },
+    [44572]  = { key = "DeepFreeze",          sound = "DeepFreeze.ogg" },
+    [44544]  = { key = "FingersOfFrost" },    -- Buff
+    [57761]  = { key = "BrainFreeze" },       -- Buff
     [12472]  = { key = "IcyVeins",            sound = "IcyVeins.ogg" },
     [12579]  = { key = "WintersChill" },      -- Debuff
     
     -- Arcane 专精
+    [30451]  = { key = "ArcaneBlast",         sound = "ArcaneBlast.ogg" },
+    [5143]   = { key = "ArcaneMissiles",      sound = "ArcaneMissiles.ogg" },
+    [44425]  = { key = "ArcaneBarrage",       sound = "ArcaneBarrage.ogg" },
+    [12042]  = { key = "ArcanePower",         sound = "ArcanePower.ogg" },
+    [12043]  = { key = "PresenceOfMind",      sound = "PresenceOfMind.ogg" },
+    [44401]  = { key = "MissileBarrage" },    -- Buff
     [17800]  = { key = "ShadowMastery" },     -- Debuff
 }
 

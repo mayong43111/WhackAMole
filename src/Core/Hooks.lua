@@ -34,11 +34,8 @@ function ns.CallHook(event, ...)
     for i, handler in ipairs(handlers) do
         local success, err = pcall(handler, event, ...)
         if not success then
-            if ns.Logger then
-                ns.Logger:Error("Hook error [" .. event .. "]: " .. tostring(err))
-            else
-                print("WhackAMole: Hook error [" .. event .. "]: " .. tostring(err))
-            end
+            ns.Logger:Error("Hook", "Hook error [" .. event .. "]: " .. tostring(err))
+            print("WhackAMole: Hook error [" .. event .. "]: " .. tostring(err))
         end
     end
 end
@@ -80,11 +77,8 @@ function ns.CallHookWithReturn(event, ...)
         if success and result ~= nil then
             return result
         elseif not success then
-            if ns.Logger then
-                ns.Logger:Error("Hook error [" .. event .. "]: " .. tostring(result))
-            else
-                print("WhackAMole: Hook error [" .. event .. "]: " .. tostring(result))
-            end
+            ns.Logger:Error("Hook", "Hook error [" .. event .. "]: " .. tostring(result))
+            print("WhackAMole: Hook error [" .. event .. "]: " .. tostring(result))
         end
     end
     

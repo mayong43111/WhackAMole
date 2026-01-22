@@ -35,6 +35,14 @@ local warriorSpells = {
     [772]    = { key = "Rend",                sound = "Rend.ogg" },
     [34428]  = { key = "VictoryRush",         sound = "VictoryRush.ogg" },
     [78]     = { key = "HeroicStrike",        sound = "HeroicStrike.ogg" },
+    [355]    = { key = "Taunt",               sound = "Taunt.ogg" },
+    [1161]   = { key = "ChallengingShout",    sound = "ChallengingShout.ogg" },
+    [694]    = { key = "MockingBlow",         sound = "MockingBlow.ogg" },
+    [845]    = { key = "Cleave",              sound = "Cleave.ogg" },
+    [1160]   = { key = "DemoralizingShout",   sound = "DemoralizingShout.ogg" },
+    [20230]  = { key = "Retaliation",         sound = "Retaliation.ogg" },
+    [469]    = { key = "CommandingShout",     sound = "CommandingShout.ogg" },
+    [18499]  = { key = "BerserkerRage",       sound = "BerserkerRage.ogg" },
     
     -- 防御技能
     [871]    = { key = "ShieldWall",          sound = "ShieldWall.ogg" },
@@ -47,12 +55,15 @@ local warriorSpells = {
     [46924]  = { key = "Bladestorm",          sound = "Bladestorm.ogg" },
     [1719]   = { key = "Recklessness",        sound = "recklessness.ogg" },
     [12328]  = { key = "SweepingStrikes",     sound = "sweepingStrikes.ogg" },
+    [60503]  = { key = "TasteForBlood" },     -- Buff
     [52437]  = { key = "SuddenDeath" },       -- Buff
     
     -- Fury 专精
     [23881]  = { key = "Bloodthirst",         sound = "Bloodthirst.ogg" },
     [1680]   = { key = "Whirlwind",           sound = "Whirlwind.ogg" },
     [1464]   = { key = "Slam",                sound = "Slam.ogg" },
+    [60970]  = { key = "HeroicFury",          sound = "HeroicFury.ogg" },
+    [29801]  = { key = "Rampage" },           -- Buff
     [46916]  = { key = "Bloodsurge" },        -- Buff
     
     -- Protection 专精

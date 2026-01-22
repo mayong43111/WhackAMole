@@ -29,6 +29,7 @@ Engine\State.lua
 
 # Core
 Core\SpecDetection.lua
+Core\DebugWindow.lua
 Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua

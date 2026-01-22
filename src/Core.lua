@@ -101,31 +101,20 @@ function WhackAMole:OnChatCommand(input)
         ns.UI.Grid:SetLock(false)
         self:Print("框架已解锁")
     elseif command == "debug" then
-        if args == "on" or args == "start" then
-            if ns.Logger then 
-                ns.Logger:Start()
-                self:Print("调试日志已开启")
-            end
-        elseif args == "off" or args == "stop" then
-            if ns.Logger then 
-                ns.Logger:Stop()
-                self:Print("调试日志已关闭")
-            end
-        elseif args == "show" or args == "" then
-            if ns.Logger then 
-                ns.Logger:Show()
-            end
+        -- 显示调试窗口，所有控制在窗口内完成
+        if ns.DebugWindow then
+            ns.DebugWindow:Show()
         else
-            self:Print("用法: /wam debug [on|off|show]")
+            self:Print("调试窗口未初始化")
         end
     elseif command == "log" then
         -- 兼容旧命令
         if args == "start" then
-            if ns.Logger then ns.Logger:Start() end
+            ns.Logger:Start()
         elseif args == "stop" then
-            if ns.Logger then ns.Logger:Stop() end
+            ns.Logger:Stop()
         elseif args == "show" then
-            if ns.Logger then ns.Logger:Show() end
+            ns.Logger:Show()
         end
     elseif command == "state" then
         -- 打印当前 State 快照
@@ -234,14 +223,10 @@ function WhackAMole:HandleCombatEvent(event)
     -- 例如：更新 State、触发音频提示等
     if event.eventType == "SPELL_CAST_SUCCESS" then
         -- 技能施放成功
-        if ns.Logger then
-            ns.Logger:Debug("Combat", "Spell cast success: " .. (event.destName or "unknown"))
-        end
+        ns.Logger:Debug("Combat", "Spell cast success: " .. (event.destName or "unknown"))
     elseif event.eventType == "SPELL_INTERRUPT" then
         -- 技能被打断
-        if ns.Logger then
-            ns.Logger:Debug("Combat", "Spell interrupted")
-        end
+        ns.Logger:Debug("Combat", "Spell interrupted")
     end
 end
 
