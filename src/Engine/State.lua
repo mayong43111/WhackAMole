@@ -1,102 +1,39 @@
 local addon, ns = ...
 local WhackAMole = _G[addon]
 
+-- =========================================================================
+-- State.lua - 重构版本
+-- 
+-- 职责：整合状态管理子模块，提供统一的 state 接口
+-- 
+-- 重构说明：
+-- - 原文件 679 行已拆分为多个子模块
+-- - Init.lua: 初始化和配置（常量、对象池、缓存系统）
+-- - AuraTracking.lua: 光环查询和缓存（FindAura 从 250 行优化到 40 行）
+-- - StateReset.lua: 状态重置逻辑（从 113 行优化到 30 行）
+-- - StateAdvance.lua: 虚拟时间推进（从 86 行优化到 25 行）
+-- =========================================================================
+
 local state = {}
 ns.State = state
 
 -- =========================================================================
--- 常量定义（基于 PoC 验证结果）
+-- 导入子模块
 -- =========================================================================
-local GCD_THRESHOLD = 1.5  -- GCD 阈值，duration <= 1.5 秒视为全局冷却，不是真实技能冷却
-local MAX_AURA_SLOTS = 40  -- 最大光环槽位数
 
--- Cache tables
-local buff_cache = {}
-local debuff_cache = {}
+local StateInit = ns.StateInit
+local AuraTracking = ns.AuraTracking
+local StateReset = ns.StateReset
+local StateAdvance = ns.StateAdvance
 
--- =========================================================================
--- 对象池系统（任务 5.3 - 借鉴 Hekili）
--- =========================================================================
--- 对象池用于减少 GC 压力，避免频繁创建/销毁临时表
+-- 从 Init 模块导入常量
+local GCD_THRESHOLD = StateInit.GCD_THRESHOLD
+local MAX_AURA_SLOTS = StateInit.MAX_AURA_SLOTS
+local aura_down = StateInit.aura_down
 
--- Buff/Debuff 查询结果缓存池
-local buffCachePool = {}
-local debuffCachePool = {}
-
---- 从缓存池获取对象
--- @param pool 对象池
--- @return table 可重用的表对象
-local function GetFromPool(pool)
-    return tremove(pool) or {}
-end
-
---- 释放对象到缓存池
--- @param pool 对象池
--- @param obj 要释放的对象
-local function ReleaseToPool(pool, obj)
-    if obj then
-        wipe(obj)  -- 清空表内容
-        tinsert(pool, obj)
-    end
-end
-
--- 导出对象池 API
-ns.GetFromPool = GetFromPool
-ns.ReleaseToPool = ReleaseToPool
-
--- =========================================================================
--- 查询结果缓存系统（任务 5.1）
--- =========================================================================
-local query_cache = {}  -- 查询结果缓存
-local cache_stats = {   -- 缓存统计
-    hits = 0,
-    misses = 0,
-    total_queries = 0
-}
-
---- 生成缓存键
--- @param queryType 查询类型（"buff"/"debuff"/"cooldown"/"distance"）
--- @param id 查询标识（SpellID 或名称）
--- @param timestamp 时间戳（用于帧级失效）
--- @return string 缓存键
-local function GetCacheKey(queryType, id, timestamp)
-    return string.format("%s_%s_%.3f", queryType, tostring(id), timestamp or state.now)
-end
-
---- 获取缓存结果
--- @param key 缓存键
--- @return table|nil 缓存的结果
-local function GetCachedResult(key)
-    cache_stats.total_queries = cache_stats.total_queries + 1
-    local result = query_cache[key]
-    if result then
-        cache_stats.hits = cache_stats.hits + 1
-        return result
-    else
-        cache_stats.misses = cache_stats.misses + 1
-        return nil
-    end
-end
-
---- 设置缓存结果
--- @param key 缓存键
--- @param value 要缓存的值
-local function SetCachedResult(key, value)
-    query_cache[key] = value
-end
-
---- 清空查询缓存（每帧调用）
-local function ClearQueryCache()
-    -- 同步缓存统计到Logger（如果启用）
-    if ns.Logger and ns.Logger.enabled then
-        ns.Logger:UpdateCacheStats("query", cache_stats.hits, cache_stats.misses, "set")
-    end
-    
-    -- 使用 wipe 比重新创建表更高效
-    for k in pairs(query_cache) do
-        query_cache[k] = nil
-    end
-end
+-- 从 AuraTracking 模块导入缓存表
+local buff_cache = AuraTracking.buff_cache
+local debuff_cache = AuraTracking.debuff_cache
 
 --- 获取缓存统计信息
 function state.GetCacheStats()

@@ -39,22 +39,7 @@ function ns.UI.Options:GetProfileTab(WhackAMole)
                     WhackAMole.db.char.activeProfileID = val
                     local p = ns.ProfileManager:GetProfile(val)
                     if p then
-                        WhackAMole.currentProfile = p
-                        
-                        -- Trigger profile switch
-                        if WhackAMole.SwitchProfile then
-                            WhackAMole:SwitchProfile(p)
-                        else
-                            -- Fallback (legacy support)
-                            if ns.UI.Grid.Create then 
-                                ns.UI.Grid:Create(p.layout, {iconSize=40, spacing=6}) 
-                            end
-                            if WhackAMole.CompileScript then 
-                                WhackAMole:CompileScript(p.script) 
-                            end
-                        end
-                        
-                        LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
+                        WhackAMole:SwitchProfile(p)
                     end
                 end 
             },

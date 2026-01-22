@@ -118,12 +118,26 @@ local function CreateDragHandle(container)
 end
 
 -- Main Grid Creation Function
-function ns.UI.Grid:Create(layout, config)
+function ns.UI.Grid:Create(layout, config, restoreAssignments)
     local state = ns.UI.GridState
     
     if state.container then 
         state.container:Hide() 
         print("[WhackAMole] Grid: Hiding existing container for rebuild")
+    end
+    
+    -- 清空所有现有按钮的状态（在创建前）
+    if not InCombatLockdown() and state.slots then
+        for i, btn in pairs(state.slots) do
+            if btn then
+                btn:SetAttribute("type", nil)
+                btn:SetAttribute("spell", nil)
+                if btn.icon then
+                    btn.icon:SetTexture(nil)
+                    btn.icon:SetAlpha(0)
+                end
+            end
+        end
     end
     
     local iconSize = config.iconSize or state.DEFAULT_ICON_SIZE
@@ -150,6 +164,8 @@ function ns.UI.Grid:Create(layout, config)
     state.slots = {}
     ns.UI.Grid:CreateSlots(layout, iconSize, spacing, cols, rows)
     
-    -- Restore saved assignments
-    ns.UI.Grid:RestoreAssignments()
+    -- Restore saved assignments (默认为true，切换配置时传false)
+    if restoreAssignments ~= false then
+        ns.UI.Grid:RestoreAssignments()
+    end
 end

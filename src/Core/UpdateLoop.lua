@@ -120,7 +120,8 @@ function UpdateLoop.GeneratePredictedSuggestion(addon, activeAction)
     if activeAction then
         local castRemaining = UpdateLoop.GetCastRemaining()
         
-        if castRemaining > 0 then
+        -- 预判优化：如果剩余施法时间 < 0.5秒，显示下一个技能
+        if castRemaining > 0 and castRemaining < 3.0 then
             -- 推进虚拟时间到施法结束
             if ns.State and ns.State.advance then
                 ns.State.advance(castRemaining)

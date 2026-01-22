@@ -110,6 +110,21 @@ function ProfileLoader.SwitchProfile(addon, profile)
         ns.SimCParser.ClearCache()
     end
     
+    -- 0. 切换到该配置的专属 assignments（每个配置独立保存技能分配）
+    local profileKey = profile.meta.name or "default"
+    if not addon.db.char.profileAssignments then
+        addon.db.char.profileAssignments = {}
+    end
+    if not addon.db.char.profileAssignments[profileKey] then
+        addon.db.char.profileAssignments[profileKey] = {}
+    end
+    addon.db.char.assignments = addon.db.char.profileAssignments[profileKey]
+    
+    -- 更新 GridState.db 引用，确保 RestoreAssignments 读取正确的表
+    if ns.UI.GridState then
+        ns.UI.GridState.db = addon.db.char
+    end
+    
     -- 1. 创建/调整格子布局
     ns.UI.Grid:Create(profile.layout, {
         iconSize = 40,

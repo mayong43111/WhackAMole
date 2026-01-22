@@ -70,6 +70,7 @@ UI\Options_refactored.lua
 # Presets (Built-in)
 Presets\Warrior_Arms.lua
 Presets\Mage_Fire.lua
+Presets\Mage_Frost.lua
 Presets\Paladin_Retribution.lua
 Presets\Druid_Balance.lua
 Presets\Druid_Feral.lua

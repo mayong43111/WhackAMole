@@ -97,45 +97,52 @@
 ## 拟定 Lua 代码逻辑 - T1阶段
 
 ```lua
--- 1. 最高优先级：法术连击炎爆
+-- 1. 最高优先级：镜像爆发
+if spell(S_MirrorImage).ready then
+    return 6 -- 镜像 (18%法伤加成)
+end
+
+-- 2. 法术连击炎爆
 if buff(B_HotStreak).up then
     return 2 -- 炎爆术 (瞬发)
 end
 
--- 2. 维持活动炸弹 (不要在爆炸前刷新)
+-- 3. 维持活动炸弹 (不要在爆炸前刷新)
 if not debuff(S_LivingBomb).up and target.time_to_die > 12 then
     return 3 -- 活动炸弹
 end
 
--- 3. 爆发：燃烧 (配合炸弹和4T1效果)
+-- 4. 爆发：燃烧 (配合炸弹和4T1效果)
 if spell(S_Combustion).ready and debuff(S_LivingBomb).up then
     return 5 -- 燃烧
 end
 
--- 4. 维持5%暴击易伤 (如果缺少)
+-- 5. 维持5%暴击易伤 (如果缺少)
 if not debuff(D_ImprovedScorch).up 
    and not debuff(D_ShadowMastery).up 
    and not debuff(D_WintersChill).up 
    and not player.moving then
-    return 7 -- 灼烧
+    return 4 -- 灼烧
 end
 
--- 5. 移动填充
+-- 6. 移动填充
 if player.moving then
-    if spell(S_FireBlast).ready then return 6 end -- 火冲击
     if buff(B_HotStreak).up then return 2 end -- 移动中瞬发炎爆
-    return 7 -- 灼烧
+    if spell(S_FireBlast).ready then return 7 end -- 火冲击
+    return 4 -- 灼烧
 end
 
--- 6. 主要填充：火球术
+-- 7. 主要填充：火球术
 return 1 -- 火球术
 ```
 
 **核心思路**: 
-- 4T1强化了法术连击触发率，所以循环重心是**疯狂暴击触发连击**
-- 保持炸弹和易伤Debuff，其余时间全力输出火球术等待连击触发
-- 燃烧CD好了就用（增加暴击率 = 更多连击）
-- 移动时优先消耗连击，其次火冲击/灼烧
+- **镜像优先**: CD好了立即使用，18%法伤提升巨大
+- **法术连击机制**: 4T1强化了连击触发率，循环重心是疯狂暴击触发连击
+- **保持DOT和易伤**: 维持活动炸弹和5%暴击debuff
+- **燃烧配合**: CD好了就用（增加暴击率 = 更多连击）
+- **移动处理**: 优先消耗连击，其次火冲击/灼烧
+- **主要输出**: 火球术spam等待连击触发
 
 ## 泰坦重铸特色说明 - T1阶段
 *   **4T1核心价值**: 务必获取4件套T1！+2%暴击率看似不多，但对法术连击触发率有约10%的提升，是火法的质变。

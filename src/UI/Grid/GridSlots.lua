@@ -21,6 +21,12 @@ local function CreateSlotButton(slotIndex, slotDef, container, iconSize, cols, r
     btn:SetSize(iconSize, iconSize)
     btn:Show()
     
+    -- 清空旧的spell属性（重要：切换配置时）
+    if not InCombatLockdown() then
+        btn:SetAttribute("type", nil)
+        btn:SetAttribute("spell", nil)
+    end
+    
     -- Setup backdrop for border effects
     if not btn.backdropSet then
         -- Ensure backdrop API is available
@@ -55,6 +61,10 @@ local function CreateSlotButton(slotIndex, slotDef, container, iconSize, cols, r
         btn.icon = icon
     end
     
+    -- 清空主图标（确保显示ghost）
+    btn.icon:SetTexture(nil)
+    btn.icon:SetAlpha(0)
+    
     -- Create cooldown frame
     if not btn.cooldown then
         local cooldown = CreateFrame("Cooldown", btnName .. "Cooldown", btn, "CooldownFrameTemplate")
@@ -74,9 +84,15 @@ local function CreateSlotButton(slotIndex, slotDef, container, iconSize, cols, r
         btn.ghost = ghost
     end
     
-    -- Set ghost icon texture
+    -- Resolve spell ID from action name BEFORE using it
+    if slotDef.action and (not slotDef.id) and ns.ActionMap and ns.ActionMap[slotDef.action] then
+        slotDef.id = ns.ActionMap[slotDef.action]
+    end
+    
+    -- Set ghost icon texture and ensure it's visible
     local _, _, hintIcon = GetSpellInfo(slotDef.id)
     btn.ghost:SetTexture(hintIcon or "Interface\\Icons\\INV_Misc_QuestionMark")
+    btn.ghost:SetAlpha(1.0)
     
     -- Store metadata
     btn.color = slotDef.color
@@ -85,10 +101,6 @@ local function CreateSlotButton(slotIndex, slotDef, container, iconSize, cols, r
     -- Store SimC action name if provided
     if slotDef.action then
         btn.action = slotDef.action
-        -- Try to resolve ID from action name
-        if (not slotDef.id) and ns.ActionMap and ns.ActionMap[slotDef.action] then
-            slotDef.id = ns.ActionMap[slotDef.action]
-        end
     end
     
     -- Add tooltip on hover

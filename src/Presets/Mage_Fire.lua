@@ -18,22 +18,24 @@ ns.ProfileManager:RegisterPreset({
             [3] = { action = "living_bomb" },
             [4] = { action = "scorch" },
             [5] = { action = "combustion" },
-            [6] = { action = "fire_blast" },
-            [7] = { action = "dragons_breath" },
-            [8] = { action = "mirror_image" }
+            [6] = { action = "mirror_image" },
+            [7] = { action = "fire_blast" }
+            -- 注意: 龙息术(Dragons Breath)不在DPS循环中，需要时手动放到技能栏
         }
     },
     
     apl = {
-        -- Highest Priority: Consume Hot Streak (4T1 makes this proc very often!)
+        -- Priority 1: Mirror Image for burst (18% spell power buff!)
+        "actions+=/mirror_image",
+        -- Priority 2: Consume Hot Streak (4T1 makes this proc very often!)
         "actions+=/pyroblast,if=buff.hot_streak.up",
-        -- Maintain Living Bomb (wait for explosion, don't clip)
+        -- Priority 3: Maintain Living Bomb (wait for explosion, don't clip)
         "actions+=/living_bomb,if=debuff.living_bomb.down&target.health.pct>0",
-        -- Use Combustion on CD (synergizes with 4T1 to generate more Hot Streaks)
+        -- Priority 4: Use Combustion on CD (synergizes with 4T1 to generate more Hot Streaks)
         "actions+=/combustion,if=debuff.living_bomb.up",
-        -- Maintain 5% Crit Debuff (if missing)
+        -- Priority 5: Maintain 5% Crit Debuff (if missing)
         "actions+=/scorch,if=!debuff.improved_scorch.up&!debuff.shadow_mastery.up&!debuff.winters_chill.up&target.health.pct>0&!player.moving",
-        -- Movement: Consume Hot Streak first
+        -- Movement: Consume Hot Streak first, then Fire Blast
         "actions+=/pyroblast,if=buff.hot_streak.up&player.moving",
         "actions+=/fire_blast,if=player.moving",
         "actions+=/scorch,if=player.moving",
