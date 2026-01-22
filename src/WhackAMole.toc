@@ -33,6 +33,7 @@ Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
 Core\Audio.lua
+Core\Hooks.lua
 Core.lua
 
 # UI

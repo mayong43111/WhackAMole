@@ -23,6 +23,12 @@ local handle = nil
 local bg = nil
 local locked = true
 
+-- 状态跟踪，避免每帧重复启动动画
+local lastActiveSlot = nil
+local lastNextSlot = nil
+local lastActiveAction = nil
+local lastNextAction = nil
+
 function ns.UI.Grid:Initialize(database)
     db = database
 end
@@ -83,13 +89,17 @@ function ns.UI.Grid:UpdateButtonSpell(btn, spellIdOrName)
     btn:SetAttribute("type", "spell")
     btn:SetAttribute("spell", name) -- Using name handles ranks automatically usually
     
-    -- Update UI
-    -- icon is the texture object, not the path. 
-    -- GetSpellInfo returns: name, rank, icon, ...
+    -- Update UI with visible icon
     local icon = _G[btn:GetName().."Icon"]
     if icon then
         icon:SetTexture(iconTexture)
         icon:SetVertexColor(1, 1, 1, 1)
+        icon:SetAlpha(1.0)  -- 显示实际技能图标
+    end
+    
+    -- Hide ghost icon when spell is assigned
+    if btn.ghost then
+        btn.ghost:SetAlpha(0)
     end
     
     -- Save DB
@@ -311,6 +321,13 @@ function ns.UI.Grid:Create(layout, config)
                 if type == "spell" then
                     local name = GetSpellInfo(id, subType)
                     if name then
+                        -- 检查目标槽位是否已有技能
+                        local existingSpell = db.assignments and db.assignments[self.slotId]
+                        if existingSpell then
+                            -- 技能交换：将目标槽位的技能放到光标
+                            PickupSpell(existingSpell)
+                        end
+                        
                         ns.UI.Grid:UpdateButtonSpell(self, name)
                     end
                     ClearCursor()
@@ -328,7 +345,31 @@ function ns.UI.Grid:Create(layout, config)
                     self:SetAttribute("type", nil)
                     self:SetAttribute("spell", nil)
                     local icon = _G[self:GetName().."Icon"]
-                    if icon then icon:SetTexture(nil) end
+                    if icon then 
+                        icon:SetTexture(nil)
+                        icon:SetAlpha(0)
+                    end
+                    
+                    -- 显示底层幽灵图标
+                    self.ghost:SetAlpha(0.3)
+                end
+            end)
+            
+            -- 拖拽预览：高亮目标槽位
+            btn:SetScript("OnEnter", function(self)
+                local type, id = GetCursorInfo()
+                if type == "spell" and not InCombatLockdown() and not locked then
+                    -- 预览效果：边框高亮
+                    self:SetBackdropBorderColor(0.8, 0.8, 0.0, 1.0)
+                end
+            end)
+            
+            btn:SetScript("OnLeave", function(self)
+                -- 恢复默认边框
+                if self.color then
+                    self:SetBackdropBorderColor(self.color[1], self.color[2], self.color[3], self.color[4] or 1.0)
+                else
+                    self:SetBackdropBorderColor(0.5, 0.5, 0.5, 1.0)
                 end
             end)
             
@@ -349,7 +390,14 @@ function ns.UI.Grid:Create(layout, config)
 end
 
 -- Visual Update for OnUpdate loop
-function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot, activeAction)
+-- 基于 TODO.md P1 任务 1.3 和 3.3 - 支持主要高亮和次要高亮（预测）
+function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot, activeAction, nextAction)
+    -- 检查状态是否改变
+    local stateChanged = (activeSlot ~= lastActiveSlot) or 
+                         (nextSlot ~= lastNextSlot) or 
+                         (activeAction ~= lastActiveAction) or 
+                         (nextAction ~= lastNextAction)
+    
     for i, btn in pairs(slots) do
         local spellName = btn:GetAttribute("spell")
         
@@ -379,31 +427,63 @@ function ns.UI.Grid:UpdateVisuals(activeSlot, nextSlot, activeAction)
             end
         end
 
-        -- Highlights
-        local shouldGlow = false
+        -- Highlights (基于 TODO.md P1 任务 3.3 - 视觉反馈完善)
+        local isPrimary = false    -- 主要高亮（金色）
+        local isSecondary = false  -- 次要高亮（蓝色）
         
-        -- 1. Try matching by SimC Action Name
+        -- 1. 检查主要推荐：通过 SimC Action Name 匹配
         if activeAction and btn.action and btn.action == activeAction then
-            shouldGlow = true
+            isPrimary = true
         end
 
-        -- 2. Fallback: Match by Slot ID (Legacy)
-        if (not shouldGlow) and (i == activeSlot) then
-            shouldGlow = true
+        -- 2. Fallback：通过 Slot ID 匹配（Legacy）
+        if (not isPrimary) and (i == activeSlot) then
+            isPrimary = true
+        end
+        
+        -- 3. 检查次要推荐（预测）：通过 SimC Action Name 匹配
+        if (not isPrimary) and nextAction and btn.action and btn.action == nextAction then
+            isSecondary = true
+        end
+        
+        -- 4. Fallback：通过 Slot ID 匹配次要推荐
+        if (not isPrimary) and (not isSecondary) and (i == nextSlot) then
+            isSecondary = true
         end
 
-        if shouldGlow then
-            LCG.AutoCastGlow_Stop(btn) 
-            local c = {1, 0.8, 0, 1} 
-            LCG.PixelGlow_Start(btn, c, nil, -0.25, nil, 3)
-            
-        elseif i == nextSlot then
-            LCG.PixelGlow_Stop(btn)
-            LCG.AutoCastGlow_Start(btn, {0, 1, 1, 1}, 4, 0.25, 1, 0, 0)
-        else
-            LCG.PixelGlow_Stop(btn)
-            LCG.AutoCastGlow_Stop(btn)
+        -- 5. 应用高亮效果（仅在状态改变时更新）
+        if stateChanged then
+            if isPrimary then
+                -- 主要高亮：金色像素光（PixelGlow）
+                LCG.PixelGlow_Stop(btn)
+                LCG.AutoCastGlow_Stop(btn) 
+                local c = {1, 0.8, 0, 1}  -- 金色
+                -- 参数：color, N(线条数), frequency(频率), length(长度), th(粗细)
+                -- frequency=0.125 → period=8秒（较慢）
+                LCG.PixelGlow_Start(btn, c, 8, 0.125, nil, 2)
+                
+            elseif isSecondary then
+                -- 次要高亮：蓝色像素光（PixelGlow）- 基于 TODO.md P1 任务 3.3
+                LCG.PixelGlow_Stop(btn)
+                LCG.AutoCastGlow_Stop(btn)
+                local c = {0.3, 0.6, 1, 1}  -- 蓝色
+                -- 较慢的频率，较少的线条
+                -- frequency=0.08 → period=12.5秒（很慢）
+                LCG.PixelGlow_Start(btn, c, 6, 0.08, nil, 1.5)
+            else
+                -- 清除所有高亮
+                LCG.PixelGlow_Stop(btn)
+                LCG.AutoCastGlow_Stop(btn)
+            end
         end
+    end
+    
+    -- 更新状态跟踪
+    if stateChanged then
+        lastActiveSlot = activeSlot
+        lastNextSlot = nextSlot
+        lastActiveAction = activeAction
+        lastNextAction = nextAction
     end
 end
 

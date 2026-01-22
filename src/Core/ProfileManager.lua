@@ -14,6 +14,9 @@ function ns.ProfileManager:RegisterPreset(profile)
     -- We assume profile.meta exists and is valid.
     if not profile or not profile.meta then return end
     
+    -- 自动添加 type = "builtin" 字段
+    profile.meta.type = "builtin"
+    
     local id = "PRESET:" .. profile.meta.name
     self.builtIn[id] = profile
     
@@ -30,29 +33,31 @@ function ns.ProfileManager:Initialize(db)
 end
 
 -- Returns a list of profiles suitable for the current class
+-- 优先级：用户配置（type="user"）> 内置配置（type="builtin"）
 function ns.ProfileManager:GetProfilesForClass(class, specId)
     local list = {}
     
-    -- 1. Built-in
-    for id, p in pairs(self.builtIn) do
-        if p.meta.class == class then
-            -- Optional: Check spec if strictly required
+    -- 1. 先遍历用户配置（优先级更高）
+    for id, p in pairs(self.db.global.profiles) do
+        if p.meta.class == class and p.meta.type == "user" then
             table.insert(list, {
                 id = id,
-                name = "[Built-in] " .. p.meta.name,
-                profile = p
+                name = "[User] " .. p.meta.name,
+                profile = p,
+                type = "user"
             })
         end
     end
     
-    -- 2. User DB
-    -- keys in db.global.profiles are UUIDs or Names
-    for id, p in pairs(self.db.global.profiles) do
-        if p.meta.class == class then
+    -- 2. 回退到内置配置
+    for id, p in pairs(self.builtIn) do
+        if p.meta.class == class and p.meta.type == "builtin" then
+            -- Optional: Check spec if strictly required
             table.insert(list, {
                 id = id,
-                name = p.meta.name,
-                profile = p
+                name = "[Built-in] " .. p.meta.name,
+                profile = p,
+                type = "builtin"
             })
         end
     end
@@ -77,7 +82,13 @@ end
 
 -- API to Import (User Profile)
 function ns.ProfileManager:SaveUserProfile(profile)
-    local id = "USER:" .. profile.meta.name .. ":" .. os.time()
+    -- 自动标记为用户配置
+    if not profile.meta then
+        profile.meta = {}
+    end
+    profile.meta.type = "user"
+    
+    local id = "USER:" .. profile.meta.name .. ":" .. time()
     self.db.global.profiles[id] = profile
     return id
 end

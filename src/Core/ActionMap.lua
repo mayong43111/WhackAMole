@@ -29,6 +29,28 @@ function ns.BuildActionMap()
             end
         end
     end
+    
+    -- 解决技术债务：自动从职业模块加载 spells
+    -- 整合职业模块定义的技能到全局 ActionMap
+    if ns.Classes then
+        for className, classData in pairs(ns.Classes) do
+            for specID, specData in pairs(classData) do
+                if type(specData) == "table" and specData.spells then
+                    for id, data in pairs(specData.spells) do
+                        if data.key and not ns.ActionMap[string.lower(data.key)] then
+                            local lowerKey = string.lower(data.key)
+                            ns.ActionMap[lowerKey] = id
+                            
+                            local snake = data.key:gsub("(%u)", "_%1"):sub(2):lower()
+                            if snake ~= lowerKey then
+                                ns.ActionMap[snake] = id
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 -- Initialize immediately if constants loaded
