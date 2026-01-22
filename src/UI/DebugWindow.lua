@@ -24,6 +24,7 @@ DebugWindow.currentTab = "log"
 DebugWindow.btnStart = nil
 DebugWindow.btnStop = nil
 DebugWindow.updateTimer = nil
+DebugWindow.perfTabWidgets = nil  -- 性能监控页签的控件引用
 
 -- =========================================================================
 -- 窗口管理
@@ -47,9 +48,10 @@ function DebugWindow:Show()
         return
     end
     frame:SetTitle("WhackAMole 调试窗口")
-    frame:SetWidth(900)
-    frame:SetHeight(700)
+    frame:SetWidth(700)  -- 减小宽度
+    frame:SetHeight(500)  -- 减小高度
     frame:SetLayout("Flow")
+    frame:EnableResize(true)  -- 允许调整大小
     frame:SetCallback("OnClose", function(widget)
         self:Hide()
     end)
@@ -84,11 +86,18 @@ end
 --- 隐藏调试窗口
 function DebugWindow:Hide()
     if self.frame then
+        -- 停止监控和定时器，完全释放资源
+        if ns.Logger and ns.Logger.enabled then
+            ns.Logger.enabled = false
+        end
+        self:StopUpdateTimer()
+        
         AceGUI:Release(self.frame)
         self.frame = nil
         self.tabGroup = nil
         self.btnStart = nil
         self.btnStop = nil
+        self.perfTabWidgets = nil
         self.isVisible = false
     end
 end
@@ -211,8 +220,8 @@ function DebugWindow:StartMonitoring()
         ns.Logger:RecordPerformance("ui", frameTime * 0.2)
     end
     
-    ns.Logger:UpdateCacheStats("query", 80, 20)
-    ns.Logger:UpdateCacheStats("script", 90, 10)
+    -- 注意：缓存统计需要在实际的 State 和 SimCParser 模块中集成
+    -- 当前显示的是初始值（0/0）
     
     -- 刷新当前页签以显示数据
     self:RefreshCurrentTab()
@@ -232,10 +241,10 @@ function DebugWindow:StopMonitoring()
         self.btnStop:SetDisabled(true)
     end
     
-    -- 停止定时器
+    -- 停止定时器，释放资源
     self:StopUpdateTimer()
     
-    -- 记录日志
+    -- 记录日志（注意：此时Logger.enabled已经false，但这条会记录因为在disabled之前调用）
     ns.Logger:Log("System", "监控已停止")
 end
 
@@ -313,7 +322,10 @@ end
 
 --- 更新实时数据
 function DebugWindow:UpdateRealtime()
-    if not ns.Logger or not ns.Logger.enabled then return end
+    -- 如果窗口不可见或Logger未启用，直接返回，不消耗资源
+    if not self.isVisible or not ns.Logger or not ns.Logger.enabled then 
+        return 
+    end
     
     -- 模拟一帧的性能数据（用于测试）
     local frameTime = 1.0 + math.random() * 2.0
@@ -365,8 +377,8 @@ function DebugWindow:UpdateRealtime()
         end
     end
     
-    -- 4. 刷新当前显示的页签（实时更新UI）
-    if self.isVisible then
+    -- 4. 只刷新性能监控页签（避免频繁刷新日志页签导致性能问题）
+    if self.isVisible and self.currentTab == "perf" then
         self:RefreshCurrentTab()
     end
 end

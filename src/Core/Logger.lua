@@ -105,16 +105,32 @@ function Logger:RecordFrameTime(frameTime)
     end
 end
 
---- 更新缓存统计
-function Logger:UpdateCacheStats(cacheType, hits, misses)
+--- 更新缓存统计（支持增量更新）
+-- @param cacheType "query" | "script"
+-- @param hits 命中次数
+-- @param misses 未命中次数
+-- @param mode "set" | "add" (默认: "set")
+function Logger:UpdateCacheStats(cacheType, hits, misses, mode)
     if not self.enabled then return end
     
+    mode = mode or "set"
+    
     if cacheType == "query" then
-        self.cache.query.hits = hits or self.cache.query.hits
-        self.cache.query.misses = misses or self.cache.query.misses
+        if mode == "add" then
+            self.cache.query.hits = self.cache.query.hits + (hits or 0)
+            self.cache.query.misses = self.cache.query.misses + (misses or 0)
+        else
+            self.cache.query.hits = hits or self.cache.query.hits
+            self.cache.query.misses = misses or self.cache.query.misses
+        end
     elseif cacheType == "script" then
-        self.cache.script.hits = hits or self.cache.script.hits
-        self.cache.script.misses = misses or self.cache.script.misses
+        if mode == "add" then
+            self.cache.script.hits = self.cache.script.hits + (hits or 0)
+            self.cache.script.misses = self.cache.script.misses + (misses or 0)
+        else
+            self.cache.script.hits = hits or self.cache.script.hits
+            self.cache.script.misses = misses or self.cache.script.misses
+        end
     end
 end
 
@@ -171,5 +187,3 @@ function Logger:Show()
         ns.DebugWindow:Show()
     end
 end
-
-print("|cff00ff00[WhackAMole] Logger module loaded|r")

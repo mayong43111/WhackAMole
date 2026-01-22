@@ -13,9 +13,7 @@ local CONFIG = {
         "SPELL_CAST_SUCCESS",
         "SPELL_INTERRUPT",
         "SPELL_AURA_APPLIED",
-        "SPELL_AURA_REMOVED",
-        "UNIT_SPELLCAST_SUCCEEDED",
-        "UNIT_SPELLCAST_INTERRUPTED"
+        "SPELL_AURA_REMOVED"
     }
 }
 
@@ -76,17 +74,21 @@ function WhackAMole:OnInitialize()
     
     -- 注册战斗事件
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent")
-    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-    self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     
-    self:Print("WhackAMole v1.1 (Refactored) Loaded. " .. date("%H:%M"))
+    -- 注册初始化事件（玩家进入世界后触发）
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
     
-    -- 5. Initialize Spec Detection with Polling (基于 PoC_Talents 验证结果)
-    -- 延迟 2 秒后启动，确保天赋数据就绪后再加载配置
+    -- Initialize Spec Detection
     ns.SpecDetection:Initialize()
+end
+
+-- 玩家进入世界事件（登录后触发）
+function WhackAMole:OnPlayerEnteringWorld(event, isLogin, isReload)
+    -- 取消事件注册，避免重复触发
+    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
     
-    -- 6. Start Loading Process - 延迟 2.5 秒，确保天赋检测已完成
-    C_Timer.After(2.5, function()
+    -- 延迟 2 秒等待天赋 API 和其他系统就绪
+    C_Timer.After(2, function()
         self:WaitForSpecAndLoad(0)
     end)
 end
@@ -107,30 +109,6 @@ function WhackAMole:OnChatCommand(input)
         else
             self:Print("调试窗口未初始化")
         end
-    elseif command == "log" then
-        -- 兼容旧命令
-        if args == "start" then
-            ns.Logger:Start()
-        elseif args == "stop" then
-            ns.Logger:Stop()
-        elseif args == "show" then
-            ns.Logger:Show()
-        end
-    elseif command == "state" then
-        -- 打印当前 State 快照
-        self:PrintStateSnapshot()
-    elseif command == "eval" then
-        -- 测试 APL 条件表达式
-        if args and args ~= "" then
-            self:EvalCondition(args)
-        else
-            self:Print("用法: /wam eval <条件表达式>")
-            self:Print("示例: /wam eval buff.hot_streak.up")
-        end
-    elseif command == "profile" then
-        -- 显示性能统计
-        local reset = (args == "reset")
-        self:ShowProfileStats(reset)
     elseif command == "" then
         -- 打开配置界面
         LibStub("AceConfigDialog-3.0"):Open("WhackAMole")
@@ -138,10 +116,7 @@ function WhackAMole:OnChatCommand(input)
         -- 显示帮助
         self:Print("可用命令:")
         self:Print("  /wam lock/unlock - 锁定/解锁框架")
-        self:Print("  /wam debug [on|off|show] - 调试日志控制")
-        self:Print("  /wam state - 打印当前 State 快照")
-        self:Print("  /wam eval <条件> - 测试 APL 条件")
-        self:Print("  /wam profile [reset] - 显示/重置性能统计")
+        self:Print("  /wam debug - 显示调试窗口")
     end
 end
 
@@ -242,7 +217,6 @@ function WhackAMole:WaitForSpecAndLoad(retryCount)
     local spec = ns.SpecDetection:GetSpecID(isLastAttempt)
     
     if spec then
-        self:Print("Detected SpecID: " .. tostring(spec))
         self:InitializeProfile(spec)
     else
         if retryCount < 10 then
@@ -261,7 +235,6 @@ function WhackAMole:InitializeProfile(currentSpec)
     if ns.Classes and ns.Classes[playerClass] and ns.Classes[playerClass][currentSpec] then
         local specModule = ns.Classes[playerClass][currentSpec]
         ns.Spells = specModule.spells
-        self:Print("Loaded spells for " .. (specModule.name or playerClass))
         
         -- 重建 ActionMap
         if ns.BuildActionMap then
@@ -307,9 +280,6 @@ function WhackAMole:InitializeProfile(currentSpec)
             profile = candidates[1].profile
             self.db.char.activeProfileID = candidates[1].id
         end
-        self:Print("Auto-selected profile: " .. profile.meta.name)
-    else
-        self:Print("Loaded profile: " .. profile.meta.name)
     end
     
     self:SwitchProfile(profile)
@@ -389,7 +359,6 @@ function WhackAMole:CompileAPL(aplLines)
     end
     
     self.logicFunc = nil -- clear legacy
-    self:Print("APL Compiled. " .. #self.currentAPL .. " actions loaded.")
 end
 
 function WhackAMole:CompileScript(scriptBody)
@@ -514,75 +483,8 @@ local updater = CreateFrame("Frame")
 updater:SetScript("OnUpdate", function(f, elapsed) WhackAMole:OnUpdate(elapsed) end)
 
 -- =========================================================================
--- 调试命令实现
+-- 性能统计（供 Debug Window 使用）
 -- =========================================================================
-
---- 打印当前 State 快照
-function WhackAMole:PrintStateSnapshot()
-    if not ns.State then
-        self:Print("State 尚未初始化")
-        return
-    end
-    
-    self:Print("=== State Snapshot ===")
-    self:Print(string.format("Time: %.2f | Combat Time: %.2f", ns.State.now or 0, ns.State.combat_time or 0))
-    
-    -- 玩家状态
-    if ns.State.player then
-        local p = ns.State.player
-        self:Print(string.format("Player HP: %d/%d (%.1f%%)", 
-            p.health or 0, p.health_max or 0, p.health_pct or 0))
-        self:Print(string.format("Power: %d/%d (%.1f%%) Type: %s", 
-            p.power or 0, p.power_max or 0, p.power_pct or 0, p.power_type or "UNKNOWN"))
-    end
-    
-    -- GCD 状态
-    if ns.State.gcd then
-        self:Print(string.format("GCD Active: %s | Remains: %.2f", 
-            tostring(ns.State.gcd.active), ns.State.gcd.remains or 0))
-    end
-    
-    -- 目标状态
-    if ns.State.target then
-        local t = ns.State.target
-        self:Print(string.format("Target Exists: %s | HP: %.1f%% | Distance: %d", 
-            tostring(t.exists), t.health_pct or 0, t.distance or 0))
-    end
-    
-    self:Print("===================")
-end
-
---- 测试 APL 条件表达式
-function WhackAMole:EvalCondition(condStr)
-    if not ns.SimCParser then
-        self:Print("SimCParser 未加载")
-        return
-    end
-    
-    -- 确保 State 已初始化
-    if ns.State and ns.State.reset then
-        ns.State.reset()
-    end
-    
-    -- 编译条件
-    local condFunc = ns.SimCParser.Compile(condStr)
-    if not condFunc then
-        self:Print("|cffff0000编译失败|r: " .. condStr)
-        return
-    end
-    
-    -- 执行条件
-    local success, result = pcall(condFunc, ns.State)
-    if not success then
-        self:Print("|cffff0000执行错误|r: " .. tostring(result))
-        return
-    end
-    
-    -- 显示结果
-    local color = result and "|cff00ff00" or "|cffff0000"
-    self:Print(string.format("条件: %s", condStr))
-    self:Print(string.format("结果: %s%s|r", color, tostring(result)))
-end
 
 --- 记录性能数据
 function WhackAMole:RecordPerformance(frameTime, stateTime, aplTime, predictTime, uiTime, audioTime)
@@ -635,88 +537,4 @@ function WhackAMole:InitPerformanceStats()
             audio = { total = 0, max = 0 }
         }
     }
-end
-
---- 计算百分位数
-local function CalculatePercentile(sortedData, percentile)
-    if #sortedData == 0 then return 0 end
-    local index = math.ceil(#sortedData * percentile / 100)
-    return sortedData[index] or 0
-end
-
---- 显示性能统计
-function WhackAMole:ShowProfileStats(reset)
-    if reset then
-        self:InitPerformanceStats()
-        -- 重置缓存统计（任务 5.1）
-        if ns.State and ns.State.ResetCacheStats then
-            ns.State.ResetCacheStats()
-        end
-        -- 重置脚本缓存统计（任务 5.6）
-        if ns.SimCParser and ns.SimCParser.ResetCacheStats then
-            ns.SimCParser.ResetCacheStats()
-        end
-        self:Print("性能统计已重置")
-        return
-    end
-    
-    if not self.perfStats or self.perfStats.frameCount == 0 then
-        self:Print("暂无性能数据")
-        return
-    end
-    
-    local stats = self.perfStats
-    local avgTime = stats.totalTime / stats.frameCount
-    
-    -- 计算百分位数
-    local sortedFrameTimes = {}
-    for _, t in ipairs(stats.frameTimes) do
-        table.insert(sortedFrameTimes, t)
-    end
-    table.sort(sortedFrameTimes)
-    local p95 = CalculatePercentile(sortedFrameTimes, 95)
-    local p99 = CalculatePercentile(sortedFrameTimes, 99)
-    
-    self:Print("=== Performance Stats ===")
-    self:Print(string.format("总帧数: %d", stats.frameCount))
-    self:Print(string.format("平均耗时: %.3f ms", avgTime))
-    self:Print(string.format("峰值耗时: %.3f ms", stats.maxTime))
-    self:Print(string.format("95分位: %.3f ms", p95))
-    self:Print(string.format("99分位: %.3f ms", p99))
-    self:Print("")
-    self:Print("=== 模块耗时统计 ===")
-    
-    -- 显示各模块统计
-    for moduleName, data in pairs(stats.modules) do
-        local avgModule = data.total / stats.frameCount
-        local pctOfTotal = (data.total / stats.totalTime) * 100
-        self:Print(string.format("%s: 平均 %.3f ms | 峰值 %.3f ms | 占比 %.1f%%", 
-            moduleName, avgModule, data.max, pctOfTotal))
-    end
-    
-    -- 显示缓存统计（任务 5.1）
-    if ns.State and ns.State.GetCacheStats then
-        local cacheStats = ns.State.GetCacheStats()
-        self:Print("")
-        self:Print("=== 查询缓存统计 ===")
-        self:Print(string.format("总查询: %d", cacheStats.total))
-        self:Print(string.format("缓存命中: %d", cacheStats.hits))
-        self:Print(string.format("缓存未命中: %d", cacheStats.misses))
-        self:Print(string.format("命中率: %.1f%%", cacheStats.hitRate))
-    end
-    
-    -- 显示脚本缓存统计（任务 5.6）
-    if ns.SimCParser and ns.SimCParser.GetCacheStats then
-        local scriptStats = ns.SimCParser.GetCacheStats()
-        self:Print("")
-        self:Print("=== 脚本编译缓存统计 ===")
-        self:Print(string.format("编译请求: %d", scriptStats.total))
-        self:Print(string.format("缓存命中: %d", scriptStats.hits))
-        self:Print(string.format("缓存未命中: %d", scriptStats.misses))
-        self:Print(string.format("命中率: %.1f%%", scriptStats.hitRate))
-    end
-    
-    self:Print("")
-    self:Print("提示: /wam profile reset 重置统计")
-    self:Print("=======================")
 end

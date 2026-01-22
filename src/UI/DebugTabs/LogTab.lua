@@ -21,36 +21,29 @@ function LogTab:Create(container)
         return
     end
     
-    container:SetLayout("List")
+    container:SetLayout("Fill")
     
-    -- 添加复制按钮
-    local copyBtn = AceGUI:Create("Button")
-    copyBtn:SetText("复制所有日志")
-    copyBtn:SetWidth(150)
-    copyBtn:SetCallback("OnClick", function()
-        self:CopyLogsToClipboard()
-    end)
-    container:AddChild(copyBtn)
-    
-    -- 创建滚动容器
-    local scrollContainer = AceGUI:Create("ScrollFrame")
-    scrollContainer:SetFullWidth(true)
-    scrollContainer:SetLayout("Flow")
+    -- 使用MultiLineEditBox显示日志（更高效，占满整个容器）
+    local logBox = AceGUI:Create("MultiLineEditBox")
+    logBox:SetFullWidth(true)
+    logBox:SetFullHeight(true)
+    logBox:DisableButton(true)
+    logBox:SetLabel(string.format("日志 (%d 条，最多显示最近 200 条) - 可直接选中复制", #ns.Logger.logs.lines))
     
     if #ns.Logger.logs.lines == 0 then
-        local emptyLabel = AceGUI:Create("Label")
-        emptyLabel:SetText("|cff808080暂无日志记录\n请点击 [启动监控] 按钮开始记录|r")
-        emptyLabel:SetFullWidth(true)
-        scrollContainer:AddChild(emptyLabel)
+        logBox:SetText("|cff808080暂无日志记录\n请点击 [启动监控] 按钮开始记录|r")
     else
-        -- 显示日志行
-        for i = #ns.Logger.logs.lines, 1, -1 do  -- 反向显示（最新在上）
+        -- 只显示最近200条日志，避免性能问题
+        local displayLimit = 200
+        local startIdx = math.max(1, #ns.Logger.logs.lines - displayLimit + 1)
+        local lines = {}
+        
+        -- 反向遍历（最新在上）
+        for i = #ns.Logger.logs.lines, startIdx, -1 do
             local log = ns.Logger.logs.lines[i]
             
             -- 检查过滤器
             if ns.Logger.logs.filters[log.category] then
-                local logLabel = AceGUI:Create("Label")
-                
                 -- 根据分类设置颜色
                 local color = "|cffffffff"
                 if log.category == "Error" then
@@ -65,52 +58,14 @@ function LogTab:Create(container)
                     color = "|cffffcc00"
                 end
                 
-                local text = string.format("%s[%s] [%s] %s|r", 
-                    color, log.timestamp, log.category, log.message)
-                logLabel:SetText(text)
-                logLabel:SetFullWidth(true)
-                scrollContainer:AddChild(logLabel)
+                table.insert(lines, string.format("%s[%s] [%s] %s|r",
+                    color, log.timestamp, log.category, log.message))
             end
         end
+        
+        logBox:SetText(table.concat(lines, "\n"))
     end
     
-    container:AddChild(scrollContainer)
+    container:AddChild(logBox)
 end
 
---- 复制日志到剪贴板
-function LogTab:CopyLogsToClipboard()
-    if not ns.Logger or not ns.Logger.logs or #ns.Logger.logs.lines == 0 then
-        return
-    end
-    
-    -- 创建临时窗口
-    local copyFrame = AceGUI:Create("Frame")
-    copyFrame:SetTitle("复制日志")
-    copyFrame:SetLayout("Fill")
-    copyFrame:SetWidth(700)
-    copyFrame:SetHeight(500)
-    copyFrame:SetCallback("OnClose", function(widget)
-        AceGUI:Release(widget)
-    end)
-    
-    -- 创建可编辑文本框
-    local editBox = AceGUI:Create("MultiLineEditBox")
-    editBox:SetLabel("全选 (Ctrl+A) 并复制 (Ctrl+C)")
-    editBox:SetFullWidth(true)
-    editBox:SetFullHeight(true)
-    editBox:DisableButton(true)
-    
-    -- 生成日志文本
-    local lines = {}
-    for _, log in ipairs(ns.Logger.logs.lines) do
-        table.insert(lines, string.format("[%s] [%s] %s", 
-            log.timestamp, log.category, log.message))
-    end
-    editBox:SetText(table.concat(lines, "\n"))
-    
-    -- 自动全选文本
-    editBox:SetFocus()
-    editBox.editBox:HighlightText()
-    
-    copyFrame:AddChild(editBox)
-end

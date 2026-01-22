@@ -87,6 +87,11 @@ end
 
 --- 清空查询缓存（每帧调用）
 local function ClearQueryCache()
+    -- 同步缓存统计到Logger（如果启用）
+    if ns.Logger and ns.Logger.enabled then
+        ns.Logger:UpdateCacheStats("query", cache_stats.hits, cache_stats.misses, "set")
+    end
+    
     -- 使用 wipe 比重新创建表更高效
     for k in pairs(query_cache) do
         query_cache[k] = nil

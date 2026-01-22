@@ -171,7 +171,10 @@ end
 
 -- Main Creation Function
 function ns.UI.Grid:Create(layout, config)
-    if container then container:Hide() end
+    if container then 
+        container:Hide() 
+        print("[WhackAMole] Grid: Hiding existing container for rebuild")
+    end
     
     local iconSize = config.iconSize or DEFAULT_ICON_SIZE
     local spacing = config.spacing or DEFAULT_SPACING

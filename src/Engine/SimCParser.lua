@@ -28,6 +28,13 @@ function SimCParser.GetCacheStats()
     }
 end
 
+-- 同步缓存统计到Logger
+function SimCParser.SyncStatsToLogger()
+    if ns.Logger and ns.Logger.enabled then
+        ns.Logger:UpdateCacheStats("script", compileStats.hits, compileStats.misses, "set")
+    end
+end
+
 -- 重置缓存统计
 function SimCParser.ResetCacheStats()
     compileStats.hits = 0
@@ -283,11 +290,20 @@ function SimCParser.Compile(condStr)
     -- 检查缓存
     if compiledScripts[condStr] then
         compileStats.hits = compileStats.hits + 1
+        
+        -- 每100次查询同步一次统计到Logger
+        if compileStats.total % 100 == 0 then
+            SimCParser.SyncStatsToLogger()
+        end
+        
         return compiledScripts[condStr]
     end
     
     -- 缓存未命中，编译新函数
     compileStats.misses = compileStats.misses + 1
+    
+    -- 同步统计
+    SimCParser.SyncStatsToLogger()
     
     local luaCode = SimCParser.ParseCondition(condStr)
     
