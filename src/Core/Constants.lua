@@ -33,11 +33,11 @@ ns.Spells = {
     [12328]  = { key = "SweepingStrikes",     sound = "sweepingStrikes.ogg" },     -- 横扫攻击
     [64382]  = { key = "ShatteringThrow",     sound = "ShatteringThrow.ogg" },     -- 碎裂投掷
     [5246]   = { key = "IntimidatingShout",   sound = "IntimidatingShout.ogg" },   -- 破胆怒吼
-    [772]    = { key = "Rend",                sound = "Rend.ogg" },                -- 撕裂
     [23881]  = { key = "Bloodthirst",         sound = "Bloodthirst.ogg" },         -- 嗜血
     [1680]   = { key = "Whirlwind",           sound = "Whirlwind.ogg" },           -- 旋风斩
     [1464]   = { key = "Slam",                sound = "Slam.ogg" },                -- 猛击
     [34428]  = { key = "VictoryRush",         sound = "VictoryRush.ogg" },         -- 乘胜追击
+    [47465]  = { key = "Rend",                sound = "Rend.ogg" },                -- 撕裂 (等级10, 80级最高等级)
     [6572]   = { key = "Revenge",             sound = "Revenge.ogg" },             -- 复仇
     [23922]  = { key = "ShieldSlam",          sound = "ShieldSlam.ogg" },          -- 盾牌猛击
     [46968]  = { key = "Shockwave",           sound = "Shockwave.ogg" },           -- 震荡波
