@@ -26,7 +26,7 @@ function ProfileLoader.InitializeProfile(addon, currentSpec)
     local candidates = ns.ProfileManager:GetProfilesForClass(playerClass)
     
     if #candidates == 0 then
-        addon:Print("No profiles found for class: " .. playerClass)
+        ns.Logger:System("No profiles found for class: " .. playerClass)
         return
     end
 
@@ -51,7 +51,7 @@ function ProfileLoader.LoadClassSpells(playerClass, currentSpec)
             ns.BuildActionMap()
         end
     else
-        print("Warning: No spell data for class " .. playerClass .. " spec " .. tostring(currentSpec))
+        ns.Logger:System("Warning: No spell data for class " .. playerClass .. " spec " .. tostring(currentSpec))
     end
 end
 
@@ -73,7 +73,7 @@ function ProfileLoader.SelectProfile(addon, candidates, currentSpec)
         else
             local oldSpec = p and p.meta.spec or "nil"
             if p then 
-                addon:Print("Spec changed (" .. oldSpec .. "->" .. currentSpec .. "). Switching profile.") 
+                ns.Logger:System("Spec changed (" .. oldSpec .. "->" .. currentSpec .. "). Switching profile.") 
             end
         end
     end
@@ -138,7 +138,7 @@ function ProfileLoader.SwitchProfile(addon, profile)
         -- 兼容旧版脚本
         ProfileLoader.CompileScript(addon, profile.script)
     else
-        addon:Print("Error: No actionable logic (APL/Script) in profile.")
+        ns.Logger:System("Error: No actionable logic (APL/Script) in profile.")
     end
     
     -- 3. 通知配置系统更新
@@ -153,14 +153,34 @@ function ProfileLoader.CompileAPL(addon, aplLines)
     addon.currentAPL = {}
     
     if not ns.SimCParser then
-        addon:Print("Error: SimCParser module not found!")
+        ns.Logger:System("Error: SimCParser module not found!")
         return
     end
 
-    for _, line in ipairs(aplLines) do
+    ns.Logger:System(string.format("编译 APL: %d 行", #aplLines))
+    
+    for idx, line in ipairs(aplLines) do
         local entry = ns.SimCParser.ParseActionLine(line)
         if entry then
             table.insert(addon.currentAPL, entry)
+            ns.Logger:System("APL", string.format("  [%d] 解析成功: %s", idx, entry.action or "Unknown"))
+        else
+            ns.Logger:System("APL", string.format("  [%d] 解析失败: %s", idx, line))
+        end
+    end
+    
+    ns.Logger:System(string.format("APL 编译完成: %d 条有效规则", #addon.currentAPL))
+    
+    -- 打印 ActionMap 中的关键技能
+    if ns.ActionMap then
+        local keySpells = {"judgement", "crusader_strike", "divine_storm", "avenging_wrath", "hammer_of_wrath"}
+        for _, spell in ipairs(keySpells) do
+            local id = ns.ActionMap[spell]
+            if id then
+                ns.Logger:System("APL", string.format("  ActionMap[%s] = %d", spell, id))
+            else
+                ns.Logger:System("APL", string.format("  ActionMap[%s] = nil (缺失!)", spell))
+            end
         end
     end
     
@@ -186,7 +206,7 @@ function ProfileLoader.CompileScript(addon, scriptBody)
     local fullScript = "local env = ...; " .. injection .. scriptBody
     local func, err = loadstring(fullScript)
     if not func then
-        addon:Print("Script Compilation Error: " .. tostring(err))
+        ns.Logger:System("Script Compilation Error: " .. tostring(err))
         addon.logicFunc = nil
     else
         addon.logicFunc = func

@@ -19,29 +19,41 @@ local Config = ns.CoreConfig
 --- 插件初始化（从 OnInitialize 拆分）
 -- @param addon WhackAMole 插件实例
 function Lifecycle.Initialize(addon)
-    -- 1. 检查依赖
+    -- 0. 记录启动日志
+    if ns.Logger then
+        ns.Logger:System("WhackAMole 插件初始化开始...")
+    end
+    
+    -- 1. 重建 ActionMap (确保所有职业模块加载完毕后包含所有技能)
+    if ns.BuildActionMap then
+        ns.BuildActionMap()
+    end
+
+    -- 2. 检查依赖
     if not LibStub("AceDB-3.0", true) then
-        addon:Print("Error: AceDB-3.0 library missing.")
+        ns.Logger:System("Error: AceDB-3.0 library missing.")
         return false
     end
 
-    -- 2. 初始化数据库
+    -- 3. 初始化数据库
     addon.db = LibStub("AceDB-3.0"):New("WhackAMoleDB", Config:GetDefaultDB())
+    ns.Logger:System("数据库初始化完成")
     
-    -- 3. 初始化子模块
+    -- 4. 初始化子模块
     ns.ProfileManager:Initialize(addon.db)
     ns.UI.Grid:Initialize(addon.db.char)
     if ns.Audio then 
         ns.Audio:Initialize() 
     end
+    ns.Logger:System("子模块初始化完成")
     
-    -- 4. 注册配置界面
+    -- 5. 注册配置界面
     LibStub("AceConfig-3.0"):RegisterOptionsTable("WhackAMole", function() 
         return ns.UI.GetOptionsTable(addon) 
     end)
     addon.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("WhackAMole", "WhackAMole")
     
-    -- 5. 注册聊天命令
+    -- 6. 注册聊天命令
     addon:RegisterChatCommand("wam", "OnChatCommand")
     
     -- 6. 初始化事件节流系统
@@ -57,6 +69,8 @@ function Lifecycle.Initialize(addon)
     
     -- 8. 初始化专精检测
     ns.SpecDetection:Initialize()
+    
+    ns.Logger:System("WhackAMole 插件初始化完成")
     
     return true
 end
@@ -99,7 +113,7 @@ function Lifecycle.WaitForSpecAndLoad(addon, retryCount)
             end)
         else
             -- 超时，加载通用配置
-            addon:Print("Timeout waiting for talent data. Loading generic profile if available.")
+            ns.Logger:System("Timeout waiting for talent data. Loading generic profile if available.")
             if ns.CoreProfileLoader then
                 ns.CoreProfileLoader.InitializeProfile(addon, 0)
             end
@@ -111,7 +125,7 @@ end
 -- @param addon WhackAMole 插件实例
 -- @param newSpecID 新的专精ID
 function Lifecycle.OnSpecChanged(addon, newSpecID)
-    addon:Print(string.format("检测到专精变化，重新加载配置... (SpecID: %d)", newSpecID))
+    ns.Logger:System(string.format("检测到专精变化，重新加载配置... (SpecID: %d)", newSpecID))
     
     -- 停止当前引擎
     if addon.heartbeatFrame then

@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- åˆå§‹åŒ–èŒä¸šå‘½åç©ºé—´
+-- ³õÊ¼»¯Ö°ÒµÃüÃû¿Õ¼ä
 ns.Classes = ns.Classes or {}
 ns.Classes.PALADIN = {}
 
@@ -25,43 +25,71 @@ end)
 local paladinSpells = {
     -- Defensive/Utility
     [642]    = { key = "DivineShield",        sound = "DivineShield.ogg" },
-    [1022]   = { key = "HandofProtection",    sound = "HandofProtection.ogg" },
-    [1044]   = { key = "HandofFreedom",       sound = "HandofFreedom.ogg" },
-    [6940]   = { key = "HandofSacrifice",     sound = "HandofSacrifice.ogg" },
+    [1022]   = { key = "HandOfProtection",    sound = "HandofProtection.ogg" },
+    [1044]   = { key = "HandOfFreedom",       sound = "HandofFreedom.ogg" },
+    [6940]   = { key = "HandOfSacrifice",     sound = "HandofSacrifice.ogg" },
     [498]    = { key = "DivineProtection",    sound = "DivineProtection.ogg" },
     [31821]  = { key = "AuraMastery",         sound = "AuraMastery.ogg" },
-    [853]    = { key = "HammerofJustice",     sound = "HammerofJustice.ogg" },
-    [96231]  = { key = "Rebuke",              sound = "Rebuke.ogg" },
+    [853]    = { key = "HammerOfJustice",     sound = "HammerofJustice.ogg" },
     
     -- Retribution DPS Abilities
-    [31884]  = { key = "AvengingWrath",       sound = "AvengingWrath.ogg" },     -- å¤ä»‡ä¹‹æ€’
-    [35395]  = { key = "CrusaderStrike",      sound = "CrusaderStrike.ogg" },    -- åå­—å†›æ‰“å‡»
-    [20271]  = { key = "Judgement",           sound = "Judgement.ogg" },         -- å®¡åˆ¤
-    [85256]  = { key = "TemplarsVerdict",     sound = "TemplarsVerdict.ogg" },   -- åœ£æ®¿éª‘å£«çš„è£å†³
-    [53385]  = { key = "DivineStorm",         sound = "DivineStorm.ogg" },       -- ç¥žåœ£é£Žæš´
-    [48819]  = { key = "Consecration",        sound = "Consecration.ogg" },      -- å¥‰çŒ®
-    [48817]  = { key = "HolyWrath",           sound = "HolyWrath.ogg" },         -- ç¥žåœ£æ„¤æ€’
-    [48801]  = { key = "Exorcism",            sound = "Exorcism.ogg" },          -- é©±é‚ªæœ¯
-    [48806]  = { key = "HammerofWrath",       sound = "HammerofWrath.ogg" },     -- æ­£ä¹‰ä¹‹é”¤
+    [31884]  = { key = "AvengingWrath",       sound = "AvengingWrath.ogg" },     -- ¸´³ðÖ®Å­
+    [35395]  = { key = "CrusaderStrike",      sound = "CrusaderStrike.ogg" },    -- Ê®×Ö¾ü´ò»÷
+    
+    -- Judgement Logic:
+    -- Map "Judgement" to the baseline spell [20271] (Judgement of Light) for compatibility.
+    -- Users should place the specific Judgement they want (Wisdom/Light/Justice) on their bar.
+    [20271]  = { key = "Judgement",           sound = "Judgement.ogg" },         -- ÉóÅÐ(¹âÃ÷/Í¨ÓÃ)
+    -- Defining specific ones just in case
+    [53408]  = { key = "JudgementOfWisdom",   sound = "Judgement.ogg" },
+    [53407]  = { key = "JudgementOfJustice",  sound = "Judgement.ogg" },
+    
+    -- WotLK has Divine Storm, NOT Templar's Verdict (Cata)
+    [53385]  = { key = "DivineStorm",         sound = "DivineStorm.ogg" },       -- ÉñÊ¥·ç±©
+    
+    [48819]  = { key = "Consecration",        sound = "Consecration.ogg" },      -- ·îÏ×
+    [48817]  = { key = "HolyWrath",           sound = "HolyWrath.ogg" },         -- ÉñÊ¥·ßÅ­
+    [48801]  = { key = "Exorcism",            sound = "Exorcism.ogg" },          -- ÇýÐ°Êõ
+    [48806]  = { key = "HammerOfWrath",       sound = "HammerofWrath.ogg" },     -- ·ßÅ­Ö®´¸
     
     -- Holy/Protection Abilities
-    [53563]  = { key = "BeaconofLight",       sound = "BeaconofLight.ogg" },     -- åœ£å…‰é“æ ‡
-    [53595]  = { key = "HammeroftheRighteous", sound = "HammeroftheRighteous.ogg" }, -- æ­£ä¹‰ä¹‹é”¤(é˜²æŠ¤)
-    [20473]  = { key = "HolyShock",           sound = "HolyShock.ogg" },         -- ç¥žåœ£éœ‡å‡»
-    [31935]  = { key = "AvengersShield",      sound = "AvengersShield.ogg" },    -- å¤ä»‡è€…ä¹‹ç›¾
+    [53563]  = { key = "BeaconOfLight",       sound = "BeaconofLight.ogg" },     -- Ê¥¹âµÀ±ê
+    [53595]  = { key = "HammerOfTheRighteous", sound = "HammeroftheRighteous.ogg" }, -- ÕýÒåÖ®´¸(·À»¤)
+    [20473]  = { key = "HolyShock",           sound = "HolyShock.ogg" },         -- ÉñÊ¥Õð»÷
+    [31935]  = { key = "AvengersShield",      sound = "AvengersShield.ogg" },    -- ¸´³ðÕßÖ®¶Ü
 }
 
 ns.Classes.PALADIN[65] = {  -- Holy
-    name = "ç¥žåœ£éª‘å£«",
+    name = "ÉñÊ¥ÆïÊ¿",
     spells = paladinSpells,
 }
 
 ns.Classes.PALADIN[66] = {  -- Protection
-    name = "é˜²æŠ¤éª‘å£«",
+    name = "·À»¤ÆïÊ¿",
     spells = paladinSpells,
 }
 
 ns.Classes.PALADIN[70] = {  -- Retribution
-    name = "æƒ©æˆ’éª‘å£«",
+    name = "³Í½äÆïÊ¿",
     spells = paladinSpells,
 }
+
+-- ÊÖ¶¯×¢²á¶¯×÷Ó³Éä£¬·ÀÖ¹×Ô¶¯Éú³ÉÂß¼­Ê§Ð§»ò¼ÓÔØË³ÐòÎÊÌâ
+if ns.ActionMap then
+    local function toSnakeCase(str)
+        local snake = str:gsub("(%u)", "_%1")
+        if snake:sub(1,1) == "_" then snake = snake:sub(2) end
+        return snake:lower()
+    end
+
+    for id, data in pairs(paladinSpells) do
+        if data.key then
+            -- 1. ×¢²áÈ«Ð¡Ð´ÐÎÊ½ (TemplarsVerdict -> templarsverdict)
+            ns.ActionMap[string.lower(data.key)] = id
+            
+            -- 2. ×¢²áÉßÐÎÃüÃûÐÎÊ½ (TemplarsVerdict -> templars_verdict)
+            local snakeKey = toSnakeCase(data.key)
+            ns.ActionMap[snakeKey] = id
+        end
+    end
+end

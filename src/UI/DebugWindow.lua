@@ -8,8 +8,8 @@ local _, ns = ...
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 
 if not AceGUI then
-    print("|cffff0000WhackAMole Error: AceGUI-3.0 not found!|r")
-    print("|cffff0000Please make sure Ace3 libraries are installed.|r")
+    ns.Logger:System("|cffff0000WhackAMole Error: AceGUI-3.0 not found!|r")
+    ns.Logger:System("|cffff0000Please make sure Ace3 libraries are installed.|r")
     return
 end
 
@@ -37,7 +37,7 @@ function DebugWindow:Show()
     end
     
     if not AceGUI then
-        print("|cffff0000WhackAMole: AceGUI not available|r")
+        ns.Logger:System("|cffff0000WhackAMole: AceGUI not available|r")
         return
     end
     
@@ -69,6 +69,7 @@ function DebugWindow:Show()
     tabGroup:SetLayout("Fill")
     tabGroup:SetTabs({
         {text = "日志", value = "log"},
+        {text = "系统日志", value = "system"},
         {text = "性能监控", value = "perf"}
     })
     tabGroup:SetCallback("OnGroupSelected", function(container, event, group)
@@ -81,6 +82,11 @@ function DebugWindow:Show()
     
     frame:AddChild(tabGroup)
     self.tabGroup = tabGroup
+    
+    -- 如果打开的是系统日志页签，立即刷新以显示已有的系统日志
+    if lastTab == "system" then
+        self:RefreshCurrentTab()
+    end
 end
 
 --- 隐藏调试窗口
@@ -113,6 +119,9 @@ function DebugWindow:SelectTab(container, tabName)
     local success, err = pcall(function()
         if tabName == "log" then
             ns.DebugTabs.LogTab:Create(container)
+        elseif tabName == "system" then
+            -- 系统日志始终可见，不需要启动监控
+            ns.DebugTabs.SystemLogTab:Create(container)
         elseif tabName == "perf" then
             ns.DebugTabs.PerfTab:Create(container)
         end

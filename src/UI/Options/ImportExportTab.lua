@@ -32,17 +32,17 @@ function ns.UI.Options:GetImportExportTab(WhackAMole)
                     local profile = ns.ProfileManager:GetProfile(profileID)
                     
                     if not profile then
-                        print("|cffff0000WhackAMole:|r 没有激活的配置可导出")
+                        ns.Logger:System("|cffff0000WhackAMole:|r 没有激活的配置可导出")
                         return
                     end
                     
                     local exportString = ns.Serializer:ExportProfile(profile)
                     if exportString then
                         WhackAMole.exportString = exportString
-                        print("|cff00ff00WhackAMole:|r 导出成功！请复制下方文本框中的字符串。")
+                        ns.Logger:System("|cff00ff00WhackAMole:|r 导出成功！请复制下方文本框中的字符串。")
                         LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
                     else
-                        print("|cffff0000WhackAMole:|r 导出失败")
+                        ns.Logger:System("|cffff0000WhackAMole:|r 导出失败")
                     end
                 end,
                 order = 3
@@ -86,21 +86,21 @@ function ns.UI.Options:GetImportExportTab(WhackAMole)
                     local inputString = WhackAMole.importString
                     
                     if not inputString or inputString == "" then
-                        print("|cffff0000WhackAMole:|r 请先粘贴配置字符串")
+                        ns.Logger:System("|cffff0000WhackAMole:|r 请先粘贴配置字符串")
                         return
                     end
                     
                     -- Parse profile
                     local profile, err = ns.Serializer:ImportProfile(inputString)
                     if not profile then
-                        print("|cffff0000WhackAMole:|r 导入失败: " .. (err or "未知错误"))
+                        ns.Logger:System("|cffff0000WhackAMole:|r 导入失败: " .. (err or "未知错误"))
                         return
                     end
                     
                     -- Validate profile
                     local valid, validErr = ns.Serializer:Validate(profile)
                     if not valid then
-                        print("|cffff0000WhackAMole:|r 配置校验失败: " .. validErr)
+                        ns.Logger:System("|cffff0000WhackAMole:|r 配置校验失败: " .. validErr)
                         return
                     end
                     
@@ -123,7 +123,7 @@ function ns.UI.Options:GetImportExportTab(WhackAMole)
                     
                     -- Clear input and refresh
                     WhackAMole.importString = ""
-                    print("|cff00ff00WhackAMole:|r 导入成功: " .. profile.meta.name)
+                    ns.Logger:System("|cff00ff00WhackAMole:|r 导入成功: " .. profile.meta.name)
                     LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
                 end,
                 order = 13

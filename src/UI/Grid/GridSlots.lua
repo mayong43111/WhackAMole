@@ -141,7 +141,7 @@ end
 -- Update a single button's spell assignment
 function ns.UI.Grid:UpdateButtonSpell(btn, spellIdOrName)
     if InCombatLockdown() then
-        print("WhackAMole: Cannot change spells in combat!")
+        ns.Logger:System("WhackAMole: Cannot change spells in combat!")
         return
     end
     
@@ -174,7 +174,7 @@ end
 -- Clear all slot assignments
 function ns.UI.Grid:ClearAllAssignments()
     if InCombatLockdown() then 
-        print("WhackAMole: Cannot clear spells in combat!")
+        ns.Logger:System("WhackAMole: Cannot clear spells in combat!")
         return 
     end
     
@@ -192,7 +192,7 @@ function ns.UI.Grid:ClearAllAssignments()
         if icon then icon:SetTexture(nil) end
     end
     
-    print("WhackAMole: Action Bar Cleared.")
+    ns.Logger:System("WhackAMole: Action Bar Cleared.")
 end
 
 -- Restore saved assignments from database

@@ -59,7 +59,7 @@ function ns.UI.Options:GetAPLEditorTab(WhackAMole)
                         ns.ProfileManager:SaveUserProfile(userProfile)
                         WhackAMole.db.char.activeProfileID = userProfile.id
                         WhackAMole:SwitchProfile(userProfile)
-                        print("WhackAMole: 已创建用户配置副本：" .. userProfile.meta.name)
+                        ns.Logger:System("WhackAMole: 已创建用户配置副本：" .. userProfile.meta.name)
                     else
                         -- Directly modify user profile
                         p.script = val
@@ -96,7 +96,7 @@ function ns.UI.Options:GetAPLEditorTab(WhackAMole)
                 func = function()
                     local p = ns.ProfileManager:GetProfile(WhackAMole.db.char.activeProfileID)
                     if not p or not p.script then
-                        print("WhackAMole: 无配置可验证")
+                        ns.Logger:System("WhackAMole: 无配置可验证")
                         return
                     end
                     
@@ -106,9 +106,9 @@ function ns.UI.Options:GetAPLEditorTab(WhackAMole)
                     end)
                     
                     if success then
-                        print("|cff00ff00WhackAMole: APL 语法验证通过！|r")
+                        ns.Logger:System("|cff00ff00WhackAMole: APL 语法验证通过！|r")
                     else
-                        print("|cffff0000WhackAMole: APL 语法错误:|r " .. tostring(err))
+                        ns.Logger:System("|cffff0000WhackAMole: APL 语法错误:|r " .. tostring(err))
                     end
                 end,
                 order = 5
@@ -122,7 +122,7 @@ function ns.UI.Options:GetAPLEditorTab(WhackAMole)
                     local p = ns.ProfileManager:GetProfile(profileID)
                     
                     if not p or p.meta.type == "builtin" then
-                        print("WhackAMole: 内置配置无法重置")
+                        ns.Logger:System("WhackAMole: 内置配置无法重置")
                         return
                     end
                     
@@ -134,10 +134,10 @@ function ns.UI.Options:GetAPLEditorTab(WhackAMole)
                         p.script = builtinProfile.script
                         ns.ProfileManager:SaveUserProfile(p)
                         WhackAMole:SwitchProfile(p)
-                        print("WhackAMole: 已重置为默认 APL")
+                        ns.Logger:System("WhackAMole: 已重置为默认 APL")
                         LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
                     else
-                        print("WhackAMole: 找不到对应的内置配置")
+                        ns.Logger:System("WhackAMole: 找不到对应的内置配置")
                     end
                 end,
                 order = 6

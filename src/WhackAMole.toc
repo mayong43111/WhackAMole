@@ -8,6 +8,9 @@
 # Libraries
 embeds.xml
 
+# Logger (Load Early)
+Core\Logger.lua
+
 # Utilities
 Utils.lua
 
@@ -32,7 +35,7 @@ Engine\State\Init.lua
 Engine\State\AuraTracking.lua
 Engine\State\StateReset.lua
 Engine\State\StateAdvance.lua
-Engine\State_refactored.lua
+Engine\State.lua
 
 # Core
 # Core Module (Phase 1.2 Refactored)
@@ -41,15 +44,15 @@ Core\Lifecycle.lua
 Core\ProfileLoader.lua
 Core\EventHandler.lua
 Core\UpdateLoop.lua
-Core_refactored.lua
+Core.lua
 Core\SpecDetection.lua
-Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
 Core\Audio.lua
 
 # UI
 UI\DebugTabs\LogTab.lua
+UI\DebugTabs\SystemLogTab.lua
 UI\DebugTabs\PerfTab.lua
 UI\DebugWindow.lua
 # Grid Module (Phase 2.1 Refactored)
@@ -58,14 +61,14 @@ UI\Grid\GridFrame.lua
 UI\Grid\GridSlots.lua
 UI\Grid\GridDragDrop.lua
 UI\Grid\GridVisuals.lua
-UI\Grid_refactored.lua
+UI\Grid.lua
 # Options Module (Phase 2.2 Refactored)
 UI\Options\ProfileTab.lua
 UI\Options\ImportExportTab.lua
 UI\Options\APLEditorTab.lua
 UI\Options\SettingsTab.lua
 UI\Options\AboutTab.lua
-UI\Options_refactored.lua
+UI\Options.lua
 
 # Presets (Built-in)
 Presets\Warrior_Arms.lua

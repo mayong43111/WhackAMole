@@ -46,6 +46,15 @@ local function ResetResources(state)
     state.energy = UnitPower("player", 3)
     state.runic = UnitPower("player", 6)
     
+    -- 手动支持圣能（Holy Power）
+    -- 在 WotLK 中，圣能 (Type 9) API 通常不可用，除非是魔改服核心支持了
+    -- 为了避免 nil 错误，我们先将其初始化为 0。
+    -- 如果是支持 4.0 机制的泰坦服，可能已经有 UnitPower("player", 9) 支持，或者需要通过 Buff 计数。
+    -- 无论如何，初始化防止报错。
+    local hp = UnitPower("player", 9)
+    if not hp or hp < 0 then hp = 0 end 
+    state.holy_power = hp
+
     state.player.moving = GetUnitSpeed("player") > 0
     state.active_enemies = 1 -- Placeholder
 end

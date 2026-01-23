@@ -13,7 +13,7 @@ Logger.enabled = false  -- 是否启用日志记录
 
 -- 日志数据
 Logger.logs = {
-    lines = {},           -- 日志行数组 [{timestamp, category, message}]
+    lines = {},           -- 普通日志行数组 [{timestamp, category, message}]
     maxLines = 1000,      -- 最大行数
     filters = {           -- 过滤器
         Combat = true,
@@ -21,9 +21,14 @@ Logger.logs = {
         APL = true,
         Error = true,
         Warn = true,
-        System = true,
         Performance = true
     }
+}
+
+-- 系统日志数据（独立存储）
+Logger.systemLogs = {
+    lines = {},           -- 系统日志行数组 [{timestamp, category, message}]
+    maxLines = 1000       -- 最大行数
 }
 
 -- 性能数据
@@ -57,23 +62,41 @@ Logger.realtime = {
 
 --- 添加日志行
 function Logger:Log(category, message)
-    if not self.enabled then return end
-    
     local timestamp = date("%H:%M:%S")
-    table.insert(self.logs.lines, {
+    local logEntry = {
         timestamp = timestamp,
         category = category,
         message = message
-    })
+    }
     
-    -- 限制最大行数
-    if #self.logs.lines > self.logs.maxLines then
-        table.remove(self.logs.lines, 1)
-    end
-    
-    -- 通知 DebugWindow 刷新（如果正在显示日志页签）
-    if ns.DebugWindow and ns.DebugWindow.isVisible and ns.DebugWindow.currentTab == "log" then
-        ns.DebugWindow:RefreshCurrentTab()
+    -- 系统日志单独存储，不受 enabled 控制
+    if category == "System" then
+        table.insert(self.systemLogs.lines, logEntry)
+        
+        -- 限制最大行数
+        if #self.systemLogs.lines > self.systemLogs.maxLines then
+            table.remove(self.systemLogs.lines, 1)
+        end
+        
+        -- 通知 DebugWindow 刷新系统日志页签
+        if ns.DebugWindow and ns.DebugWindow.isVisible and ns.DebugWindow.currentTab == "system" then
+            ns.DebugWindow:RefreshCurrentTab()
+        end
+    else
+        -- 普通日志需要检查 enabled
+        if not self.enabled then return end
+        
+        table.insert(self.logs.lines, logEntry)
+        
+        -- 限制最大行数
+        if #self.logs.lines > self.logs.maxLines then
+            table.remove(self.logs.lines, 1)
+        end
+        
+        -- 通知 DebugWindow 刷新日志页签
+        if ns.DebugWindow and ns.DebugWindow.isVisible and ns.DebugWindow.currentTab == "log" then
+            ns.DebugWindow:RefreshCurrentTab()
+        end
     end
 end
 
@@ -137,6 +160,7 @@ end
 --- 清空所有数据
 function Logger:Clear()
     self.logs.lines = {}
+    self.systemLogs.lines = {}
     self.performance.frameTimes = {}
     for _, modData in pairs(self.performance.modules) do
         modData.total = 0
@@ -165,6 +189,17 @@ end
 --- 调试日志
 function Logger:Debug(category, message)
     self:Log(category, message)
+end
+
+--- 系统日志
+function Logger:System(...)
+    local args = {...}
+    local msg = ""
+    for i, v in ipairs(args) do
+        if i > 1 then msg = msg .. " " end
+        msg = msg .. tostring(v)
+    end
+    self:Log("System", msg)
 end
 
 --- 启动监控（兼容旧命令）

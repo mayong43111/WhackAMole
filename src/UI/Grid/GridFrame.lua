@@ -123,7 +123,7 @@ function ns.UI.Grid:Create(layout, config, restoreAssignments)
     
     if state.container then 
         state.container:Hide() 
-        print("[WhackAMole] Grid: Hiding existing container for rebuild")
+        ns.Logger:System("[WhackAMole] Grid: Hiding existing container for rebuild")
     end
     
     -- 清空并隐藏所有现有按钮（在创建前）

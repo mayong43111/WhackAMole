@@ -26,5 +26,5 @@ end
 
 -- Simple error printing
 function ns.Error(...)
-    print("|cffff0000WhackAMole Error:|r", ...)
+    ns.Logger:System("|cffff0000WhackAMole Error:|r", ...)
 end
