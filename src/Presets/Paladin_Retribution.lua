@@ -1,58 +1,74 @@
--- Retribution Paladin Preset (APL v1.0)
+-- Retribution Paladin Preset (APL v1.1)
 local _, ns = ...
 
 ns.ProfileManager:RegisterPreset({
     meta = {
-        name = "[Ì©Ì¹] DPS - ³Í½äÆï (T1)",
+        name = "[Titan] Retribution DPS (T1)",
         author = "WhackAMole",
-        version = 3, -- Updated again
+        version = 6,
         class = "PALADIN",
         spec = 70, -- Retribution
-        desc = "WotLK Retribution for Titan Forged T1. Priority: Judgement (Mana) > DS > CS."
+        desc = "WotLK 3.3.5a Retribution rotation - Hekili optimized with seal stacking, mana management, consecration buff check, and seal switching."
     },
 
     layout = {
         slots = {
-            [1] = { action = "crusader_strike" },   -- Ê®×Ö¾ü´ò»÷
-            [2] = { action = "judgement" },         -- ÉóÅĞ (»ØÀ¶/ÉËº¦)
-            [3] = { action = "divine_storm" },      -- ÉñÊ¥·ç±©
-            [4] = { action = "avenging_wrath" },    -- ¸´³ğÖ®Å­
-            [5] = { action = "consecration" },      -- ·îÏ×
-            [6] = { action = "exorcism" },          -- ÇıĞ°Êõ
-            [7] = { action = "holy_wrath" },        -- ÉñÊ¥·ßÅ­
-            [8] = { action = "hammer_of_justice" }, -- ÖÆ²Ã
-            [9] = { action = "hammer_of_wrath" }    -- ·ßÅ­Ö®´¸
+            [1] = { action = "crusader_strike" },      -- åå­—å†›æ‰“å‡»
+            [2] = { action = "judgement" },            -- å®¡åˆ¤
+            [3] = { action = "divine_storm" },         -- ç¥åœ£é£æš´
+            [4] = { action = "avenging_wrath" },       -- å¤ä»‡ä¹‹æ€’
+            [5] = { action = "consecration" },         -- å¥‰çŒ®
+            [6] = { action = "exorcism" },             -- é©±é‚ªæœ¯
+            [7] = { action = "holy_wrath" },           -- ç¥åœ£æ„¤æ€’
+            [8] = { action = "hammer_of_justice" },    -- åˆ¶è£ä¹‹é”¤
+            [9] = { action = "hammer_of_wrath" }       -- æ„¤æ€’ä¹‹é”¤
         }
     },
 
     apl = {
-        -- ÓÅÏÈ¼¶ 1: ¸´³ğÖ®Å­ (CDºÃ±¬·¢)
+        -- Execute Phase (<20% health): Hammer of Wrath becomes top priority
+        -- æ–©æ€é˜¶æ®µï¼šæ„¤æ€’ä¹‹é”¤æœ€é«˜ä¼˜å…ˆçº§
+        "actions+=/avenging_wrath,if=target.health.pct<20",
+        "actions+=/hammer_of_wrath,if=target.health.pct<20",
+        "actions+=/judgement,if=target.health.pct<20&mana.percent<90",
+        "actions+=/crusader_strike,if=target.health.pct<20",
+        "actions+=/divine_storm,if=target.health.pct<20",
+        
+        -- Normal Phase: Seal stacking and mana-aware rotation
+        -- å¸¸è§„é˜¶æ®µï¼šåœ£å°å å±‚ + è“é‡ç®¡ç†
+        
+        -- Priority 1: Avenging Wrath (use on cooldown)
+        -- å¤ä»‡ä¹‹æ€’ï¼šCDè½¬å¥½å°±ç”¨
         "actions+=/avenging_wrath",
-
-        -- ÓÅÏÈ¼¶ 2: ·ßÅ­Ö®´¸ (Õ¶É±)
-        "actions+=/hammer_of_wrath,if=target.health.pct<20|buff.avenging_wrath.up",
-
-        -- ÓÅÏÈ¼¶ 3: ÉóÅĞ (»ØÀ¶ & ÉËº¦)
-        -- ·ÅÔÚÊ®×Ö¾ü´ò»÷Ö®Ç°£¬È·±£»ØÀ¶
+        
+        -- Priority 2: Judgement (mana regen priority when low)
+        -- å®¡åˆ¤ï¼šè“é‡ä½äº90%æ—¶ä¼˜å…ˆæ–½æ”¾ï¼Œè§¦å‘"å®¡åˆ¤è´¤è€…"å›è“
+        "actions+=/judgement,if=mana.percent<90",
         "actions+=/judgement",
-
-        -- ÓÅÏÈ¼¶ 4: ÉñÊ¥·ç±© (ºËĞÄÉËº¦ / 4T1)
-        "actions+=/divine_storm",
-
-        -- ÓÅÏÈ¼¶ 5: Ê®×Ö¾ü´ò»÷ (ºËĞÄÉËº¦)
+        
+        -- Priority 3: Crusader Strike (core damage, 2pc T1 +6%)
+        -- åå­—å†›æ‰“å‡»ï¼šæ ¸å¿ƒè¾“å‡ºæŠ€èƒ½ï¼Œ2T1å¢ä¼¤6%
         "actions+=/crusader_strike",
-
-        -- ÓÅÏÈ¼¶ 6: ÇıĞ°Êõ (Õ½ÕùÒÕÊõ)
-        -- ½öÔÚË²·¢Ê±Ê¹ÓÃ
+        
+        -- Priority 4: Divine Storm (AOE/single, 4pc T1 CD-1s)
+        -- ç¥åœ£é£æš´ï¼šAOEå’Œå•ä½“éƒ½å¼ºï¼Œ4T1 CDå‡å°‘1ç§’
+        "actions+=/divine_storm",
+        
+        -- Priority 5: Exorcism (filler when Art of War procs)
+        -- é©±é‚ªæœ¯ï¼šæˆ˜äº‰è‰ºæœ¯è§¦å‘æ—¶çš„å¡«å……æŠ€èƒ½
         "actions+=/exorcism,if=buff.the_art_of_war.up",
-
-        -- ÓÅÏÈ¼¶ 7: ·îÏ× (Ìî³ä)
-        "actions+=/consecration,if=!debuff.consecration.up",
-
-        -- ÓÅÏÈ¼¶ 8: ÉñÊ¥·ßÅ­ (Ìî³ä / AOE)
+        "actions+=/exorcism",
+        
+        -- Priority 6: Consecration (filler when buff expires)
+        -- å¥‰çŒ®ï¼šåªåœ¨buffä¸å­˜åœ¨æˆ–å‰©ä½™<2ç§’æ—¶æ–½æ”¾ï¼Œé¿å…è¦†ç›–æµªè´¹
+        "actions+=/consecration,if=!buff.consecration.up|buff.consecration.remains<2",
+        
+        -- Priority 7: Holy Wrath (filler)
+        -- ç¥åœ£æ„¤æ€’ï¼šå¡«å……æŠ€èƒ½
         "actions+=/holy_wrath",
         
-        -- ÓÅÏÈ¼¶ 9: ÖÆ²ÃÖ®´¸ (Ìî³ä)
+        -- Priority 8: Hammer of Justice (last resort)
+        -- åˆ¶è£ä¹‹é”¤ï¼šæœ€åå¡«å……æŠ€èƒ½
         "actions+=/hammer_of_justice"
     }
 })
