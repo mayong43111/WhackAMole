@@ -36,6 +36,11 @@ local deathKnightSpells = {
     [49930]  = { key = "BloodStrike",         sound = "BloodStrike.ogg",        desc = "鲜血打击" },
     [55050]  = { key = "HeartStrike",         sound = "HeartStrike.ogg",        desc = "心脏打击（鲜血）" },
     [55090]  = { key = "ScourgeStrike",       sound = "ScourgeStrike.ogg",      desc = "天灾打击（邪恶）" },
+    [49895]  = { key = "DeathCoil",           sound = "DeathCoil.ogg",          desc = "凋零缠绕，消耗符能" },
+    [43265]  = { key = "DeathAndDecay",       sound = "DeathAndDecay.ogg",      desc = "枯萎凋零，AOE/单体" },
+    [47568]  = { key = "EmpowerRuneWeapon",   sound = "EmpowerRuneWeapon.ogg",  desc = "符文武器增效，爆发" },
+    [42650]  = { key = "ArmyOfTheDead",       sound = "ArmyOfTheDead.ogg",      desc = "亡者大军" },
+    [45529]  = { key = "BloodTap",            sound = "BloodTap.ogg",           desc = "活力分流" },
     
     -- ==================== Defensive/Utility ====================
     [48707]  = { key = "AntiMagicShell",      sound = "AntiMagicShell.ogg",     desc = "反魔法护罩" },
