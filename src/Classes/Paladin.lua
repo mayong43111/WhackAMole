@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- ³õÊ¼»¯Ö°ÒµÃüÃû¿Õ¼ä
+-- ï¿½ï¿½Ê¼ï¿½ï¿½Ö°Òµï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½
 ns.Classes = ns.Classes or {}
 ns.Classes.PALADIN = {}
 
@@ -33,48 +33,48 @@ local paladinSpells = {
     [853]    = { key = "HammerOfJustice",     sound = "HammerofJustice.ogg" },
     
     -- Retribution DPS Abilities
-    [31884]  = { key = "AvengingWrath",       sound = "AvengingWrath.ogg" },     -- ¸´³ðÖ®Å­
-    [35395]  = { key = "CrusaderStrike",      sound = "CrusaderStrike.ogg" },    -- Ê®×Ö¾ü´ò»÷
+    [31884]  = { key = "AvengingWrath",       sound = "AvengingWrath.ogg" },     -- ï¿½ï¿½ï¿½ï¿½Ö®Å­
+    [35395]  = { key = "CrusaderStrike",      sound = "CrusaderStrike.ogg" },    -- Ê®ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½
     
     -- Judgement Logic:
     -- Map "Judgement" to the baseline spell [20271] (Judgement of Light) for compatibility.
     -- Users should place the specific Judgement they want (Wisdom/Light/Justice) on their bar.
-    [20271]  = { key = "Judgement",           sound = "Judgement.ogg" },         -- ÉóÅÐ(¹âÃ÷/Í¨ÓÃ)
+    [20271]  = { key = "Judgement",           sound = "Judgement.ogg" },         -- ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½/Í¨ï¿½ï¿½)
     -- Defining specific ones just in case
     [53408]  = { key = "JudgementOfWisdom",   sound = "Judgement.ogg" },
     [53407]  = { key = "JudgementOfJustice",  sound = "Judgement.ogg" },
     
     -- WotLK has Divine Storm, NOT Templar's Verdict (Cata)
-    [53385]  = { key = "DivineStorm",         sound = "DivineStorm.ogg" },       -- ÉñÊ¥·ç±©
+    [53385]  = { key = "DivineStorm",         sound = "DivineStorm.ogg" },       -- ï¿½ï¿½Ê¥ï¿½ç±©
     
-    [48819]  = { key = "Consecration",        sound = "Consecration.ogg" },      -- ·îÏ×
-    [48817]  = { key = "HolyWrath",           sound = "HolyWrath.ogg" },         -- ÉñÊ¥·ßÅ­
-    [48801]  = { key = "Exorcism",            sound = "Exorcism.ogg" },          -- ÇýÐ°Êõ
-    [48806]  = { key = "HammerOfWrath",       sound = "HammerofWrath.ogg" },     -- ·ßÅ­Ö®´¸
+    [48819]  = { key = "Consecration",        sound = "Consecration.ogg" },      -- ï¿½ï¿½ï¿½ï¿½
+    [48817]  = { key = "HolyWrath",           sound = "HolyWrath.ogg" },         -- ï¿½ï¿½Ê¥ï¿½ï¿½Å­
+    [48801]  = { key = "Exorcism",            sound = "Exorcism.ogg" },          -- ï¿½ï¿½Ð°ï¿½ï¿½
+    [48806]  = { key = "HammerOfWrath",       sound = "HammerofWrath.ogg" },     -- ï¿½ï¿½Å­Ö®ï¿½ï¿½
     
     -- Holy/Protection Abilities
-    [53563]  = { key = "BeaconOfLight",       sound = "BeaconofLight.ogg" },     -- Ê¥¹âµÀ±ê
-    [53595]  = { key = "HammerOfTheRighteous", sound = "HammeroftheRighteous.ogg" }, -- ÕýÒåÖ®´¸(·À»¤)
-    [20473]  = { key = "HolyShock",           sound = "HolyShock.ogg" },         -- ÉñÊ¥Õð»÷
-    [31935]  = { key = "AvengersShield",      sound = "AvengersShield.ogg" },    -- ¸´³ðÕßÖ®¶Ü
+    [53563]  = { key = "BeaconOfLight",       sound = "BeaconofLight.ogg" },     -- Ê¥ï¿½ï¿½ï¿½ï¿½ï¿½
+    [53595]  = { key = "HammerOfTheRighteous", sound = "HammeroftheRighteous.ogg" }, -- ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½)
+    [20473]  = { key = "HolyShock",           sound = "HolyShock.ogg" },         -- ï¿½ï¿½Ê¥ï¿½ï¿½ï¿½
+    [31935]  = { key = "AvengersShield",      sound = "AvengersShield.ogg" },    -- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½
 }
 
 ns.Classes.PALADIN[65] = {  -- Holy
-    name = "ÉñÊ¥ÆïÊ¿",
+    name = "ï¿½ï¿½Ê¥ï¿½ï¿½Ê¿",
     spells = paladinSpells,
 }
 
 ns.Classes.PALADIN[66] = {  -- Protection
-    name = "·À»¤ÆïÊ¿",
+    name = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¿",
     spells = paladinSpells,
 }
 
 ns.Classes.PALADIN[70] = {  -- Retribution
-    name = "³Í½äÆïÊ¿",
+    name = "ï¿½Í½ï¿½ï¿½ï¿½Ê¿",
     spells = paladinSpells,
 }
 
--- ÊÖ¶¯×¢²á¶¯×÷Ó³Éä£¬·ÀÖ¹×Ô¶¯Éú³ÉÂß¼­Ê§Ð§»ò¼ÓÔØË³ÐòÎÊÌâ
+-- ï¿½Ö¶ï¿½×¢ï¿½á¶¯ï¿½ï¿½Ó³ï¿½ä£¬ï¿½ï¿½Ö¹ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½Ê§Ð§ï¿½ï¿½ï¿½ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 if ns.ActionMap then
     local function toSnakeCase(str)
         local snake = str:gsub("(%u)", "_%1")
@@ -84,10 +84,10 @@ if ns.ActionMap then
 
     for id, data in pairs(paladinSpells) do
         if data.key then
-            -- 1. ×¢²áÈ«Ð¡Ð´ÐÎÊ½ (TemplarsVerdict -> templarsverdict)
+            -- 1. ×¢ï¿½ï¿½È«Ð¡Ð´ï¿½ï¿½Ê½ (TemplarsVerdict -> templarsverdict)
             ns.ActionMap[string.lower(data.key)] = id
             
-            -- 2. ×¢²áÉßÐÎÃüÃûÐÎÊ½ (TemplarsVerdict -> templars_verdict)
+            -- 2. ×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ (TemplarsVerdict -> templars_verdict)
             local snakeKey = toSnakeCase(data.key)
             ns.ActionMap[snakeKey] = id
         end

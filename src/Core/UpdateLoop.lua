@@ -47,7 +47,7 @@ function UpdateLoop.OnUpdate(addon, elapsed)
     local uiTime = UpdateLoop.UpdateUI(activeSlot, nextSlot, activeAction, nextAction)
     
     -- 5. 音频反馈
-    local audioTime = UpdateLoop.PlayAudioFeedback(addon, activeAction)
+    local audioTime = UpdateLoop.PlayAudioFeedback(addon, activeAction, nextAction)
     
     -- 6. 记录性能统计
     local frameTime = debugprofilestop() - frameStart
@@ -171,12 +171,22 @@ end
 --- 播放音频反馈
 -- @param addon WhackAMole 插件实例
 -- @param activeAction 当前推荐动作
+-- @param nextAction 预测推荐动作
 -- @return number 音频处理耗时（ms）
-function UpdateLoop.PlayAudioFeedback(addon, activeAction)
+function UpdateLoop.PlayAudioFeedback(addon, activeAction, nextAction)
     local audioStart = debugprofilestop()
-    if addon.db.global.audio.enabled and activeAction then
-        if ns.Audio and ns.Audio.PlayByAction then
-            ns.Audio:PlayByAction(activeAction)
+    if addon.db.global.audio.enabled then
+        local targetAction = activeAction
+        
+        -- Requirement 4: Prompt next possible skill 0.5s before current cast ends
+        -- (Only switching if we are actually casting and close to finish)
+        local castRemaining = UpdateLoop.GetCastRemaining()
+        if castRemaining > 0 and castRemaining <= 0.5 and nextAction then
+             targetAction = nextAction
+        end
+
+        if targetAction and ns.Audio and ns.Audio.PlayByAction then
+            ns.Audio:PlayByAction(targetAction)
         end
     end
     return debugprofilestop() - audioStart

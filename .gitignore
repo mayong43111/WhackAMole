@@ -16,3 +16,4 @@ Desktop.ini
 .env
 lua_dist/
 Reference/
+dist/

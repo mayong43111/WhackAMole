@@ -44,8 +44,8 @@ ns.Spells = {
     [20243]  = { key = "Devastate",           sound = "Devastate.ogg" },           -- 毁灭打击
     [12809]  = { key = "ConcussionBlow",      sound = "ConcussionBlow.ogg" },      -- 震荡猛击
     [78]     = { key = "HeroicStrike",        sound = "HeroicStrike.ogg" },        -- 英勇打击
-    [52437]  = { key = "SuddenDeath" },                                            -- 猝死 (Buff)
-    [46916]  = { key = "Bloodsurge" },                                             -- 猛击! (Buff)
+    [52437]  = { key = "SuddenDeath",         sound = "Execute.ogg"},              -- 猝死 (Buff) -> 斩杀音效
+    [46916]  = { key = "Bloodsurge",          sound = "Slam.ogg" },                -- 猛击! (Buff) -> 猛击音效
 
     -- ---------------------------------------------------------------
     -- DEATH KNIGHT (死亡骑士)

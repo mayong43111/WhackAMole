@@ -14,7 +14,7 @@ from azure.identity import DefaultAzureCredential
 class SkillAudioGenerator:
     """技能语音生成器：使用 Azure TTS 生成 OGG 音频文件"""
     
-    def __init__(self, output_dir="../../src/Sounds", voice="zh-CN-XiaoxiaoNeural", speech_rate="1.5"):
+    def __init__(self, output_dir="../../src/Sounds", voice="zh-CN-XiaoyiNeural", speech_rate="1.5"):
         load_dotenv()
         
         self.region = os.getenv("AZURE_SPEECH_REGION")
@@ -58,8 +58,14 @@ class SkillAudioGenerator:
     
     def text_to_ogg(self, text, filename, ssml=None):
         """将文本转换为 OGG 音频文件"""
-        temp_wav = self.temp_dir / f"{Path(filename).stem}.wav"
         output_ogg = self.output_dir / filename
+        
+        # Check if file exists to skip redundant generation
+        if output_ogg.exists():
+            print(f"⏩ 跳过 (已存在): {filename}")
+            return True
+
+        temp_wav = self.temp_dir / f"{Path(filename).stem}.wav"
         
         try:
             audio_config = AudioConfig(filename=str(temp_wav))
@@ -92,9 +98,21 @@ class SkillAudioGenerator:
     
     def _build_ssml(self, text):
         """构建 SSML 标记"""
+        # 智能语速调整 (User Requested: 2字=1.2倍, >2字=1.5倍)
+        # 只有在默认语速 (1.5) 下才生效，允许通过命令行覆盖
+        rate = self.speech_rate
+        if rate == "1.5":
+            clean_text = text.strip()
+            if len(clean_text) <= 2:
+                rate = "1.2"
+            else:
+                rate = "1.5"
+        
+        print(f"   ℹ️  智能语速: '{text}' -> {rate}x")
+
         return f"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">
     <voice name="{self.voice}">
-        <prosody rate="{self.speech_rate}">{text}</prosody>
+        <prosody rate="{rate}">{text}</prosody>
     </voice>
 </speak>"""
     
@@ -108,6 +126,7 @@ class SkillAudioGenerator:
             
             cmd = [
                 'ffmpeg', '-i', str(wav_file),
+                '-filter:a', 'volume=2.5',  # 增加音量 (约 +8dB)
                 '-acodec', 'libvorbis',
                 '-ac', '1',
                 '-ar', '44100',
