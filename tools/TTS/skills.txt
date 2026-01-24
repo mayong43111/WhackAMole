@@ -1,0 +1,121 @@
+# 魔兽世界技能语音配置
+# 格式: 技能中文名:输出文件名.ogg
+# 支持中英文冒号，以 # 开头的行为注释
+
+# 战士技能
+冲锋:Charge.ogg
+斩杀:Execute.ogg
+致死打击:MortalStrike.ogg
+压制:Overpower.ogg
+利刃风暴:Bladestorm.ogg
+鲁莽:Recklessness.ogg
+盾墙:ShieldWall.ogg
+破釜沉舟:LastStand.ogg
+盾牌格挡:ShieldBlock.ogg
+战斗怒吼:BattleShout.ogg
+雷霆一击:ThunderClap.ogg
+缴械:Disarm.ogg
+拳击:Pummel.ogg
+法术反射:SpellReflection.ogg
+援护:Intervene.ogg
+横扫攻击:SweepingStrikes.ogg
+碎裂投掷:ShatteringThrow.ogg
+破胆怒吼:IntimidatingShout.ogg
+嗜血:Bloodthirst.ogg
+旋风斩:Whirlwind.ogg
+猛击:Slam.ogg
+乘胜追击:VictoryRush.ogg
+撕裂:Rend.ogg
+复仇:Revenge.ogg
+盾牌猛击:ShieldSlam.ogg
+震荡波:Shockwave.ogg
+毁灭打击:Devastate.ogg
+震荡猛击:ConcussionBlow.ogg
+英勇打击:HeroicStrike.ogg
+
+# 死亡骑士技能
+反魔法护罩:AntiMagicShell.ogg
+冰封之韧:IceboundFortitude.ogg
+符文刃舞:DancingRuneWeapon.ogg
+巫妖之躯:Lichborne.ogg
+吸血鬼之血:VampiricBlood.ogg
+白骨之盾:BoneShield.ogg
+绞袭:Strangulate.ogg
+心灵冰冻:MindFreeze.ogg
+冰柱:PillarofFrost.ogg
+召唤石像鬼:SummonGargoyle.ogg
+黑暗突变:DarkTransformation.ogg
+窒息:Asphyxiate.ogg
+
+# 圣骑士技能
+圣盾术:DivineShield.ogg
+保护之手:HandofProtection.ogg
+自由之手:HandofFreedom.ogg
+牺牲之手:HandofSacrifice.ogg
+复仇之怒:AvengingWrath.ogg
+圣佑术:DivineProtection.ogg
+光环掌握:AuraMastery.ogg
+制裁之锤:HammerofJustice.ogg
+责难:Rebuke.ogg
+清算:Reckoning.ogg
+
+# 牧师技能
+痛苦压制:PainSuppression.ogg
+消散:Dispersion.ogg
+能量灌注:PowerInfusion.ogg
+心灵尖啸:PsychicScream.ogg
+惊骇:PsychicHorror.ogg
+沉默:Silence.ogg
+群体驱散:MassDissipation.ogg
+守护之魂:GuardianSpirit.ogg
+
+# 潜行者技能
+暗影斗篷:CloakofShadows.ogg
+疾跑:Sprint.ogg
+消失:Vanish.ogg
+闪避:Evasion.ogg
+致盲:Blind.ogg
+肾击:KidneyShot.ogg
+脚踢:Kick.ogg
+暗影之舞:ShadowDance.ogg
+切割:SliceandDice.ogg
+
+# 德鲁伊技能
+树皮术:Barkskin.ogg
+生存本能:SurvivalInstincts.ogg
+激活:Innervate.ogg
+吹风:Cyclone.ogg
+迎头痛击:SkullBash.ogg
+
+# 萨满祭司技能
+嗜血:Bloodlust.ogg
+英勇:Heroism.ogg
+风剪:WindShear.ogg
+妖术:Hex.ogg
+战栗图腾:TremorTotem.ogg
+
+# 法师技能
+寒冰屏障:IceBlock.ogg
+唤醒:Evocation.ogg
+法术反制:Counterspell.ogg
+变形术:Polymorph.ogg
+冰冷血脉:IcyVeins.ogg
+镜像:MirrorImage.ogg
+活体炸弹:LivingBomb.ogg
+炎爆术:Pyroblast.ogg
+火球术:Fireball.ogg
+灼烧:Scorch.ogg
+燃烧:Combustion.ogg
+火焰冲击:FireBlast.ogg
+龙息术:DragonsBreath.ogg
+
+# 术士技能
+恐惧嚎叫:HowlOfTerror.ogg
+恐惧术:Fear.ogg
+法术封锁:SpellLock.ogg
+
+# 猎人技能
+逃脱:Disengage.ogg
+威慑:Deterrence.ogg
+误导:Misdirection.ogg
+驱散射击:ScatterShot.ogg
