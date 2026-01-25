@@ -13,53 +13,27 @@ ns.ProfileManager:RegisterPreset({
     
     layout = {
         slots = {
-            [1] = { action = "mangle_cat" },
-            [2] = { action = "rake" },
-            [3] = { action = "shred" },
-            [4] = { action = "rip" },
-            [5] = { action = "ferocious_bite" },
-            [6] = { action = "savage_roar" },
-            [7] = { action = "swipe_cat" },
-            [8] = { action = "berserk" },
-            [9] = { action = "tigers_fury" }
+            [1] = { action = "mangle_cat" },      -- 割碎（猫）
+            [2] = { action = "rake" },            -- 斜掠
+            [3] = { action = "shred" },           -- 撕碎
+            [4] = { action = "rip" },             -- 割裂
+            [5] = { action = "ferocious_bite" },  -- 凶猛撕咬
+            [6] = { action = "savage_roar" },     -- 野蛮咆哮
+            [7] = { action = "swipe_cat" },       -- 横扫（猫）
+            [8] = { action = "berserk" },         -- 狂暴
+            [9] = { action = "tigers_fury" }      -- 猛虎之怒
         }
     },
     
     apl = {
-        -- Priority 1: Savage Roar (MUST maintain 100% uptime - 30% damage boost)
-        -- Emergency refresh at <2s even with 1 combo point
-        "actions+=/savage_roar,if=!buff.savage_roar.up|buff.savage_roar.remains<2,combo_points>=1",
-        
-        -- Priority 2: Berserk (major burst CD - use with Tiger's Fury)
-        -- 4T1: Duration increased from 15s to 18s (+20% burst window)
-        "actions+=/berserk,if=buff.tigers_fury.up",
-        
-        -- Priority 3: Tiger's Fury (energy restore + 15% damage buff)
-        -- Use at <30 energy to avoid overflow
-        "actions+=/tigers_fury,if=energy<30",
-        
-        -- Priority 4: Rake (maintain bleed DoT)
-        -- 15-20% of total damage
-        "actions+=/rake,if=!debuff.rake.up|debuff.rake.remains<3",
-        
-        -- Priority 5: Rip (maintain highest damage DoT at 5 combo points)
-        -- 25-30% of total damage
-        "actions+=/rip,if=(!debuff.rip.up|debuff.rip.remains<3)&combo_points>=5",
-        
-        -- Priority 6: Ferocious Bite (finisher at 5 combo points)
-        -- Only when Rake + Rip are active and Savage Roar >10s
-        "actions+=/ferocious_bite,if=combo_points>=5&debuff.rake.up&debuff.rip.up&buff.savage_roar.remains>10",
-        
-        -- Priority 7: Mangle (combo point builder - 1s CD)
-        -- Free during Berserk
-        "actions+=/mangle_cat,if=combo_points<5",
-        
-        -- Priority 8: Shred (high damage combo point builder - requires backstab position)
-        -- 42 energy cost (or free with Omen of Clarity)
-        "actions+=/shred,if=combo_points<5&energy>=42",
-        
-        -- Priority 9: Swipe (AoE ability)
-        -- 2T1: Energy cost reduced from 50 to 45
-        "actions+=/swipe_cat,if=active_enemies>=2&energy>=45"
+        "actions+=/savage_roar,if=!buff.savage_roar.up|buff.savage_roar.remains<2,combo_points>=1",  -- 野蛮咆哮：必须保持100%覆盖（+30%伤害，剩余<2秒紧急刷新）
+        "actions+=/berserk,if=buff.tigers_fury.up",                                                    -- 狂暴：配合猛虎之怒使用（4T1持续时间15秒→18秒）
+        "actions+=/tigers_fury,if=energy<30",                                                          -- 猛虎之怒：能量<30时使用（恢复能量+15%伤害）
+        "actions+=/rake,if=!debuff.rake.up|debuff.rake.remains<3",                                    -- 斜掠：维持流血DoT（占总伤15-20%）
+        "actions+=/rip,if=(!debuff.rip.up|debuff.rip.remains<3)&combo_points>=5",                     -- 割裂：5连击点维持最高伤害DoT（占总伤25-30%）
+        "actions+=/ferocious_bite,if=combo_points>=5&debuff.rake.up&debuff.rip.up&buff.savage_roar.remains>10", -- 凶猛撕咬：5连击点终结技（斜掠和割裂存在且野蛮咆哮>10秒）
+        "actions+=/mangle_cat,if=combo_points<5",                                                      -- 割碎：连击点生成（CD 1秒，狂暴期间免费）
+        "actions+=/shred,if=combo_points<5&energy>=42",                                                -- 撕碎：高伤害连击点生成（需背刺位置，42能量）
+        "actions+=/swipe_cat,if=active_enemies>=2&energy>=45"                                          -- 横扫：AOE技能（2T1能量消耗50→45）
     }
 })

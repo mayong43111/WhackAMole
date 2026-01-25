@@ -43,6 +43,184 @@ State 模块负责构建游戏状态的只读快照（Context），为 APL 条�
 
 ---
 
+## APL 条件表达式可用参数
+
+> **说明**：完整的参数列表、实现状态和优先级请参见下方的[参数完整列表与实现状态](#参数完整列表与实现状态)表格。
+
+### 参数完整列表与实现状态
+
+| 分类 | 参数 | 描述 | 实现状态 | 优先级 | 备注 |
+|------|------|------|----------|--------|------|
+| **时间** | `now` | 当前时间戳 (GetTime()) | ✅ 已实现 | - | - |
+| | `combat_time` | 战斗时长（秒） | ✅ 已实现 | - | - |
+| **玩家-生命** | `player.health.current` | 当前生命值 | ✅ 已实现 | - | - |
+| | `player.health.max` | 最大生命值 | ✅ 已实现 | - | - |
+| | `player.health.pct` | 生命百分比 | ✅ 已实现 | - | 防护战 Preset 使用 |
+| **玩家-资源** | `player.power.type` | 资源类型 | ℹ️ 未实现 | P2 | - |
+| | `player.power.current` | 当前资源值 | ✅ 已实现 | - | 仅 rage 完整实现 |
+| | `player.power.max` | 最大资源值 | ℹ️ 未实现 | P1 | - |
+| | `player.power.pct` | 资源百分比 | ℹ️ 未实现 | P1 | - |
+| | `player.power.regen` | 每秒回复量 | ℹ️ 未实现 | P2 | - |
+| | `rage` | 怒气值 | ✅ 已实现 | - | - |
+| | `mana` | 法力值 | ✅ 已实现 | - | - |
+| | `energy` | 能量值 | ✅ 已实现 | - | - |
+| | `runic_power` | 符文能量 | ✅ 已实现 | - | - |
+| | `mana.pct` | 法力百分比 | ✅ 已实现 | - | 火法 Preset 使用 |
+| | `energy.pct` | 能量百分比 | ⚠️ 部分实现 | P1 | - |
+| | `rage.pct` | 怒气百分比 | ⚠️ 部分实现 | P1 | - |
+| | `runic_power.pct` | 符能百分比 | ⚠️ 部分实现 | P1 | - |
+| **玩家-读条** | `player.casting.spell` | 施法名称 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.spell_id` | 法术 ID | ℹ️ 未实现 | P2 | - |
+| | `player.casting.target` | 施法目标 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.end_time` | 读条结束时间 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.remains` | 读条剩余时间 | ℹ️ 未实现 | P2 | - |
+| **玩家-GCD** | `player.gcd.active` | GCD 是否激活 | ✅ 已实现 | - | - |
+| | `player.gcd.remains` | GCD 剩余时间 | ✅ 已实现 | - | - |
+| **玩家-移动** | `player.moving` | 是否正在移动 | ✅ 已实现 | - | - |
+| **玩家-战斗** | `player.in_combat` | 战斗状态 | ✅ 已实现 | - | - |
+| **目标-存在** | `target.exists` | 目标是否存在 | ✅ 已实现 | - | - |
+| **目标-生命** | `target.health.current` | 当前生命值 | ✅ 已实现 | - | - |
+| | `target.health.max` | 最大生命值 | ✅ 已实现 | - | - |
+| | `target.health.pct` | 生命百分比 | ✅ 已实现 | - | - |
+| **目标-读条** | `target.casting.spell` | 施法名称 | ℹ️ 未实现 | P2 | 打断逻辑需要 |
+| | `target.casting.interruptible` | 是否可打断 | ℹ️ 未实现 | P2 | - |
+| **目标-其他** | `target.time_to_die` | 预计存活时间 | ⚠️ Placeholder | P2 | 固定值 99 |
+| | `target.range` | 目标距离 | ✅ 已实现 | - | 粗略检测 |
+| **Buff** | `buff.NAME.up` | Buff 是否存在 | ✅ 已实现 | - | - |
+| | `buff.NAME.down` | Buff 是否不存在 | ✅ 已实现 | - | - |
+| | `buff.NAME.remains` | Buff 剩余时间 | ✅ 已实现 | - | - |
+| | `buff.NAME.count` | Buff 层数 | ✅ 已实现 | - | - |
+| | `buff.NAME.mine` | 是否玩家施加 | ✅ 已实现 | - | - |
+| | `buff.NAME.react` | 是否可响应/触发 | ✅ 已实现 | - | SimC兼容 |
+| **Debuff** | `debuff.NAME.up` | Debuff 是否存在 | ✅ 已实现 | - | - |
+| | `debuff.NAME.down` | Debuff 是否不存在 | ✅ 已实现 | - | - |
+| | `debuff.NAME.remains` | Debuff 剩余时间 | ✅ 已实现 | - | - |
+| | `debuff.NAME.count` | Debuff 层数 | ✅ 已实现 | - | - |
+| **冷却** | `cooldown.NAME.ready` | 冷却是否就绪 | ✅ 已实现 | - | - |
+| | `cooldown.NAME.remains` | 冷却剩余时间 | ✅ 已实现 | - | - |
+| | `cooldown.NAME.charges` | 技能层数 | ℹ️ 未实现 | P2 | - |
+| **天赋** | `talent.NAME.enabled` | 天赋是否学习 | ℹ️ 未实现 | P2 | - |
+| **职业-符文** | `runes.blood` | 鲜血符文数量 | ⚠️ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.frost` | 冰霜符文数量 | ⚠️ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.unholy` | 邪恶符文数量 | ⚠️ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.death` | 死亡符文数量 | ⚠️ 未实现 | **P0** | 死骑 Preset 使用 |
+| **职业-连击** | `combo_points` | 连击点数 | ✅ 已实现 | - | 盗贼/德鲁伊 |
+| **战斗环境** | `active_enemies` | 激活敌人数量 | ⚠️ Placeholder | P1 | 固定值 1 |
+
+### 实现状态说明
+
+- **✅ 已实现**: 功能完整可用
+- **⚠️ 部分实现**: 基础功能可用，但需要增强（如 Placeholder、缺少字段等）
+- **ℹ️ 未实现**: 文档定义但代码中未实现
+
+### 优先级说明
+
+- **P0（紧急）**: Preset 中已使用，必须立即实现
+  - `runes.*` (blood/frost/unholy/death) - 死骑 Preset 使用（7处引用）
+
+- **P1（高优先级）**: 功能完整性，可快速实现
+  - `energy.pct`, `rage.pct`, `runic_power.pct` - 资源百分比（复用 mana 元表方案）
+  - `active_enemies` - 多目标判断（当前固定为1，需实现敌人计数）
+
+- **P2（中优先级）**: 系统完整性
+  - `player.power.max`, `player.power.pct` - 资源系统完善
+  - `player.casting.*` - 玩家施法状态追踪
+
+- **P3（低优先级）**: 增强功能
+  - `target.time_to_die` - 复杂的存活时间算法
+  - `target.casting.*` - 目标施法检测（打断逻辑）
+  - `talent.*` - 天赋检测
+  - `cooldown.NAME.charges` - 多层数技能支持
+  - `player.power.type`, `player.power.regen` - 资源类型和回复速度
+
+---
+
+## 条件表达式操作符
+
+**示例**:
+```lua
+cooldown.combustion.ready           -- 燃烧冷却就绪
+cooldown.mirror_image.remains > 20  -- 镜像冷却剩余时间 > 20 秒
+cooldown.overpower.ready            -- 压制可以使用
+```
+
+#### 7. 天赋状态 (talent.NAME.FIELD)
+
+支持的字段：
+- `talent.NAME.enabled` - 天赋是否学习（返回 boolean）
+
+**逻辑操作符**:
+- `&` - 逻辑与 (AND)
+- `|` - 逻辑或 (OR)
+- `!` - 逻辑非 (NOT)
+
+**比较操作符**:
+- `>` - 大于
+- `<` - 小于
+- `>=` - 大于等于
+- `<=` - 小于等于
+- `=` - 等于（编译为 Lua 的 `==`）
+- `!=` - 不等于（编译为 Lua 的 `~=`）
+
+**分组**:
+- `( )` - 括号用于改变优先级
+
+### 使用示例
+
+```lua
+-- 生命值检查
+"actions+=/shield_wall,if=player.health.pct<20"
+"actions+=/hammer_of_wrath,if=target.health.pct<20"
+
+-- Buff/Debuff 检查
+"actions+=/pyroblast,if=buff.hot_streak.up"
+"actions+=/rend,if=debuff.rend.remains<3&target.time_to_die>6"
+"actions+=/moonfire,if=!debuff.moonfire.up"
+
+-- 冷却检查
+"actions+=/combustion,if=cooldown.combustion.ready"
+"actions+=/overpower"  -- 无条件，等效于 if=cooldown.overpower.ready
+
+-- 复合条件
+"actions+=/pyroblast,if=buff.hot_streak.up&cooldown.combustion.ready"
+"actions+=/execute,if=target.health.pct<20|buff.sudden_death.up"
+"actions+=/savage_roar,if=!buff.savage_roar.up|buff.savage_roar.remains<2"
+
+-- 资源检查
+"actions+=/evocation,if=mana.pct<10"
+"actions+=/heroic_strike,if=rage>=60&target.health.pct>=20"
+"actions+=/tigers_fury,if=energy<30"
+"actions+=/frost_strike,if=runic_power>=40"
+
+-- 移动状态
+"actions+=/fire_blast,if=player.moving"
+"actions+=/slam,if=!player.moving&rage>=20"
+
+-- 符文检查（死亡骑士）
+"actions+=/scourge_strike,if=runes.unholy>=1&runes.frost>=1"
+"actions+=/blood_strike,if=runes.blood>=1"
+
+-- Debuff 检查（DoT 等效于 Debuff）
+"actions+=/icy_touch,if=!debuff.frost_fever.up"
+"actions+=/plague_strike,if=!debuff.blood_plague.up"
+
+-- Buff 响应/触发检查
+"actions+=/death_coil,if=buff.sudden_doom.react"
+
+-- 团队增益检查
+"actions+=/summon_gargoyle,if=buff.potion_of_speed.up|buff.bloodlust.up|buff.heroism.up"
+
+-- 连击点检查（盗贼/德鲁伊）
+"actions+=/rip,if=combo_points>=5&debuff.rake.up"
+"actions+=/ferocious_bite,if=combo_points>=5"
+
+-- 多目标检查
+"actions+=/swipe_cat,if=active_enemies>=2&energy>=45"
+"actions+=/thunder_clap,if=debuff.thunder_clap.down&active_enemies>=2"
+```
+
+---
+
 ## 核心数据结构
 
 ### 状态快照 (Context)

@@ -307,6 +307,16 @@ function SimCParser.Compile(condStr)
     
     local luaCode = SimCParser.ParseCondition(condStr)
     
+    -- 预处理：将资源对象访问转换为数值访问（解决元表比较问题）
+    -- 匹配 state.资源名（但不匹配 state.资源名.属性）
+    local resources = {"rage", "energy", "mana", "runic_power", "focus"}
+    for _, res in ipairs(resources) do
+        -- 使用模式：state.资源名 后面不是 . 或 _
+        -- 替换为：(state.资源名._value or state.资源名)
+        luaCode = luaCode:gsub("(state%." .. res .. ")([^%._])", "%1._value%2")
+        luaCode = luaCode:gsub("(state%." .. res .. ")$", "%1._value")
+    end
+    
     -- Wrap in a function that takes 'state' as an argument
     local funcBody = "local state = ...; return " .. luaCode
     local func, err = loadstring(funcBody)

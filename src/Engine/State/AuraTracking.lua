@@ -1,23 +1,28 @@
 local addon, ns = ...
 
--- =========================================================================
+-- ========================================================================
 -- 光环查询和缓存模块
--- =========================================================================
-
+-- ========================================================================
 -- 从 State.lua 拆分而来，负责 Buff/Debuff 查询和缓存
 
+-- 依赖其他 State 模块
 local StateInit = ns.StateInit
-local GCD_THRESHOLD = StateInit.GCD_THRESHOLD
-local MAX_AURA_SLOTS = StateInit.MAX_AURA_SLOTS
+local StateCache = ns.StateCache
+local StateConfig = ns.StateConfig
+
+-- 常量引用
+local GCD_THRESHOLD = StateConfig.GCD_THRESHOLD
+local MAX_AURA_SLOTS = StateConfig.MAX_AURA_SLOTS
+local SPELL_LATENCY_WINDOW = StateConfig.SPELL_LATENCY_WINDOW
 local aura_down = StateInit.aura_down
 
--- Cache tables
+-- 光环缓存表
 local buff_cache = {}
 local debuff_cache = {}
 
--- =========================================================================
+-- ========================================================================
 -- 缓存查询辅助函数
--- =========================================================================
+-- ========================================================================
 
 --- 从缓存中查询光环（优化后的函数）
 -- @param cache 缓存表 (buff_cache 或 debuff_cache)
@@ -57,38 +62,39 @@ end
 -- @param stateNow 当前虚拟时间
 -- @return table 光环对象
 local function FindAura(cache, id, stateNow)
-    -- Step 1: 检查查询缓存
+    -- Step 1: 检查查询缓存（帧级缓存，避免重复查询）
     local cacheType = (cache == buff_cache) and "buff" or "debuff"
-    local cacheKey = StateInit.GetCacheKey(cacheType, id, stateNow)
-    local cached = StateInit.GetCachedResult(cacheKey)
+    local cacheKey = StateCache.GetCacheKey(cacheType, id, stateNow)
+    local cached = StateCache.GetCachedResult(cacheKey)
     if cached then
         return cached
     end
     
-    -- Step 2: 查询 Aura 缓存
+    -- Step 2: 查询 Aura 缓存（从上次扫描的结果中查找）
     local result = QueryAuraCache(cache, id)
 
-    -- Step 2.5: 延迟补偿 (如果 Debuff 还没出现，但我们刚刚施放过，则假定它存在)
-    -- 注意: 只应用 1.0 秒内的施法记录，避免过期的施法干扰
+    -- Step 2.5: 延迟补偿（处理网络延迟：如果 Debuff 还没出现，但我们刚刚施放过，则假定它存在）
+    -- 注意: 只应用在配置的窗口内的施法记录，避免过期的施法干扰
     if not result and cache == debuff_cache and ns.State and ns.State.lastSpellCast then
         local lastTime = ns.State.lastSpellCast[id]
-        if lastTime and (GetTime() - lastTime) < 1.0 then
+        if lastTime and (GetTime() - lastTime) < SPELL_LATENCY_WINDOW then
              result = {
                   up = true,
                   down = false,
                   mine = true,
                   count = 1,
-                  remains = 12,        -- 假定持续时间 (足够通过检测即可)
+                  remains = 12,        -- 假定持续时间（足够通过检测即可）
                   duration = 12,
                   expirationTime = GetTime() + 12
              }
         end
     end
     
+    -- Step 3: 返回结果（未找到则返回 aura_down）
     result = result or aura_down
     
-    -- Step 3: 缓存结果并返回
-    StateInit.SetCachedResult(cacheKey, result)
+    -- Step 4: 缓存结果并返回
+    StateCache.SetCachedResult(cacheKey, result)
     return result
 end
 
@@ -207,7 +213,9 @@ local mt_buff = {
                 down = false,
                 count = aura.count,
                 remains = (expires == 0) and 9999 or math.max(0, expires - stateNow),
-                duration = aura.duration
+                duration = aura.duration,
+                mine = aura.mine or false,
+                react = true  -- Buff存在时可响应（SimC兼容）
             }
         end
         return aura

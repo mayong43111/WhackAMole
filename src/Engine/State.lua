@@ -1,37 +1,45 @@
 local addon, ns = ...
 local WhackAMole = _G[addon]
 
--- =========================================================================
--- State.lua - 重构版本 v2.0
--- 
--- 职责：整合状态管理子模块，提供统一的 state 接口
--- 
--- 重构说明：
--- - 原文件 679 行已拆分为多个子模块（Phase 1 重构完成）
--- - Init.lua: 初始化和配置（常量、对象池、缓存系统）- 150行
--- - AuraTracking.lua: 光环查询和缓存（FindAura 从 250 行优化到 40 行）- 220行
--- - StateReset.lua: 状态重置逻辑（从 113 行优化到 30 行）- 120行
--- - StateAdvance.lua: 虚拟时间推进（从 86 行优化到 25 行）- 130行
--- - 主文件：接口聚合和向后兼容 - ~150行
--- 总行数: 679 → ~770行（分布在5个文件中，平均每个文件154行）
--- =========================================================================
+-- ========================================================================
+-- State.lua - 状态管理主接口
+-- ========================================================================
+-- 职责：提供统一的游戏状态查询接口，聚合各子模块功能
+--
+-- 子模块说明：
+--   Config      - 配置常量（GCD阈值、资源类型、回复速率等）
+--   Cache       - 缓存系统（对象池、查询缓存、性能优化）
+--   Resources   - 资源管理（法力、怒气、能量、符文能量等）
+--   Init        - 初始化和基础结构
+--   AuraTracking - Buff/Debuff 扫描和查询
+--   StateReset  - 状态重置协调
+--   StateAdvance - 虚拟时间推进
+--
+-- 使用示例：
+--   state.reset()              -- 重置状态
+--   if state.buff(12345).up then ... end  -- 查询 Buff
+--   state.advance(1.5)         -- 推进1.5秒
+-- ========================================================================
 
 local state = {}
 ns.State = state
 
--- =========================================================================
+-- ========================================================================
 -- 导入子模块
--- =========================================================================
+-- ========================================================================
 
 -- 等待子模块加载（确保加载顺序正确）
+local StateConfig = ns.StateConfig
+local StateCache = ns.StateCache
+local StateResources = ns.StateResources
 local StateInit = ns.StateInit
 local AuraTracking = ns.AuraTracking
 local StateReset = ns.StateReset
 local StateAdvance = ns.StateAdvance
 
--- 从 Init 模块导入常量和工具函数
-local GCD_THRESHOLD = StateInit.GCD_THRESHOLD
-local MAX_AURA_SLOTS = StateInit.MAX_AURA_SLOTS
+-- 从配置模块导入常量
+local GCD_THRESHOLD = StateConfig.GCD_THRESHOLD
+local MAX_AURA_SLOTS = StateConfig.MAX_AURA_SLOTS
 local aura_down = StateInit.aura_down
 
 -- 从 AuraTracking 模块导入缓存表和元表
@@ -40,13 +48,14 @@ local debuff_cache = AuraTracking.debuff_cache
 local mt_buff = AuraTracking.CreateBuffMetatable()
 local mt_debuff = AuraTracking.CreateDebuffMetatable()
 
--- =========================================================================
+-- ========================================================================
 -- 辅助函数
--- =========================================================================
+-- ========================================================================
 
---- 检查技能是否正在施法或引导（基于 PoC_Spells 验证）
+--- 检查技能是否正在施法或引导
 -- @param spellName 技能名称或 ID
--- @return boolean, string - (正在施法, 施法类型)
+-- @return boolean 是否正在施法
+-- @return string 施法类型（"cast" 或 "channel"）
 function IsSpellCasting(spellName)
     local castName, _, _, _, _, _, _, notInterruptible, spellId = UnitCastingInfo("player")
     if castName == spellName then
@@ -61,20 +70,23 @@ function IsSpellCasting(spellName)
     return false, nil
 end
 
--- =========================================================================
--- Spell Metatable（技能冷却和可用性检测）
--- =========================================================================
+-- ========================================================================
+-- 技能查询元表（支持冷却和可用性检测）
+-- ========================================================================
 
--- 确保 ActionMap 已加载
+-- 确保 ActionMap 已加载（技能名称到 ID 的映射）
 if ns.BuildActionMap and (not ns.ActionMap or not next(ns.ActionMap)) then
     ns.BuildActionMap()
 end
 
--- =========================================================================
--- Recent Cast Tracking (Latency Compensation)
--- =========================================================================
+-- ========================================================================
+-- 施法记录（用于延迟补偿）
+-- ========================================================================
 state.lastSpellCast = {}
 
+--- 记录施法时间（用于 Debuff 延迟补偿）
+-- @param spellID 技能 ID
+-- @param spellName 技能名称
 function state:RecordSpellCast(spellID, spellName)
     local now = GetTime()
     if spellID then
@@ -153,30 +165,33 @@ local mt_spell = {
     end
 }
 
--- =========================================================================
+-- ========================================================================
 -- State 结构初始化
--- =========================================================================
+-- ========================================================================
 
-state.now = 0 -- 虚拟时间
+state.now = 0  -- 当前虚拟时间戳
 
+-- 技能查询接口
 state.spell = setmetatable({}, mt_spell)
-state.cooldown = state.spell -- 别名
+state.cooldown = state.spell  -- SimC 别名
 
+-- 玩家状态
 state.player = {
-    buff = setmetatable({}, mt_buff),
-    power = { rage = { current = 0 } },
-    moving = false,
-    combat = false,
-    combat_time = 0
+    buff = setmetatable({}, mt_buff),  -- Buff 查询接口
+    power = { rage = { current = 0 } },  -- 资源容器（由 StateReset 填充）
+    moving = false,  -- 是否移动中
+    combat = false,  -- 是否战斗中（已废弃，使用 in_combat）
+    combat_time = 0  -- 战斗持续时间
 }
-state.buff = state.player.buff
+state.buff = state.player.buff  -- SimC 别名
 
+-- 目标状态
 state.target = {
-    debuff = setmetatable({}, mt_debuff),
-    health = { pct = 0, current = 0, max = 0 },
-    time_to_die = 99
+    debuff = setmetatable({}, mt_debuff),  -- Debuff 查询接口
+    health = { pct = 0, current = 0, max = 0 },  -- 生命值
+    time_to_die = 99  -- 预测死亡时间（秒）
 }
-state.debuff = state.target.debuff
+state.debuff = state.target.debuff  -- SimC 别名
 
 -- GCD 状态
 state.gcd = {
@@ -191,77 +206,57 @@ state.active_enemies = 1
 mt_buff._state = state
 mt_debuff._state = state
 
--- =========================================================================
--- 公共 API（委托给子模块）
--- =========================================================================
+-- ========================================================================
+-- 公共 API（委托给子模块实现）
+-- ========================================================================
 
---- 完整状态重置
--- @param full 是否执行完整重置（默认 true）
+--- 重置游戏状态（从 WoW API 读取最新数据）
+-- @param full 是否完整重置（默认 true）；false 时仅更新关键字段
 function state.reset(full)
     StateReset.Reset(state, full)
 end
 
---- 推进虚拟时间
--- @param seconds 推进的时间（秒）
+--- 推进虚拟时间（用于预测未来状态）
+-- @param seconds 推进的秒数
 function state.advance(seconds)
     StateAdvance.Advance(state, seconds)
 end
 
---- 获取缓存统计信息（调试用）
+--- 获取缓存统计信息
+-- @return table 包含 hits/misses/total_queries/hit_rate 的统计数据
 function state.GetCacheStats()
-    -- TODO: 从 StateInit 导出统计信息
-    return {
-        hits = 0,
-        misses = 0,
-        total = 0,
-        hitRate = 0
-    }
+    return StateCache.GetCacheStats()
 end
 
---- 重置缓存统计
+--- 重置缓存统计计数器
 function state.ResetCacheStats()
-    -- TODO: 从 StateInit 重置统计
+    StateCache.ResetCacheStats()
 end
 
--- =========================================================================
--- 向后兼容性导出
--- =========================================================================
+-- ========================================================================
+-- 向后兼容性导出（供其他模块使用）
+-- ========================================================================
 
--- 导出对象池 API（保持旧代码兼容）
-ns.GetFromPool = StateInit.GetFromPool
-ns.ReleaseToPool = StateInit.ReleaseToPool
+-- 导出对象池 API
+ns.GetFromPool = StateCache.GetFromPool
+ns.ReleaseToPool = StateCache.ReleaseToPool
 
 -- 导出光环扫描函数（供钩子系统使用）
 ns.ScanBuffs = AuraTracking.ScanBuffs
 ns.ScanDebuffs = AuraTracking.ScanDebuffs
 
--- =========================================================================
--- 重构完成标记
--- =========================================================================
+-- ========================================================================
+-- 模块完成标记
+-- ========================================================================
 
--- 标记 State.lua 已完成 Phase 1 重构
-ns.StateRefactoredPhase1 = true
+-- 标记 State 模块已完成职责优化
+ns.StateRefactoredPhase2 = true
 
 --[[
-    重构统计：
-    - 原文件：679 行，单个超大文件
-    - 重构后：5 个模块文件，总计 ~770 行
-      * Init.lua: 150 行
-      * AuraTracking.lua: 220 行
-      * StateReset.lua: 120 行
-      * StateAdvance.lua: 130 行
-      * State.lua (主文件): 150 行
-    
-    优化成果：
-    - FindAura: 250 行 → 40 行（优化 84%）
-    - state.reset: 113 行 → 30 行（优化 73%）
-    - state.advance: 86 行 → 25 行（优化 71%）
-    - 最大单文件行数: 679 → 220 行（降低 68%）
-    - 平均文件行数: 154 行（符合 <250 行目标）
-    - 最大单函数行数: 250 → 40 行（符合 <50 行目标）
-    
-    可测试性提升：
-    - 每个子模块可独立测试
-    - 函数职责单一，易于编写单元测试
-    - 模块间依赖清晰，便于Mock测试
+    架构特点：
+    - 配置集中管理：所有常量在 Config.lua 统一维护
+    - 性能优化集中：对象池和查询缓存在 Cache.lua 统一管理
+    - 资源完整生命周期：创建、初始化、推进统一在 Resources.lua
+    - 协调器职责单一：StateReset 和 StateAdvance 仅负责协调
+    - 模块可独立测试：每个模块职责清晰，依赖关系明确
 ]]

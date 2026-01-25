@@ -30,7 +30,11 @@ Classes\Druid.lua
 # Engine
 Engine\SimCParser.lua
 Engine\APLExecutor.lua
-# State Module (Phase 1 Refactored)
+# State Module (Phase 1 Refactored + Responsibility Optimized)
+# Load order critical: Config → Cache → Resources → Init → AuraTracking → StateReset/Advance → State
+Engine\State\Config.lua
+Engine\State\Cache.lua
+Engine\State\Resources.lua
 Engine\State\Init.lua
 Engine\State\AuraTracking.lua
 Engine\State\StateReset.lua
