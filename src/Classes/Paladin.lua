@@ -51,6 +51,7 @@ local paladinSpells = {
     [48817]  = { key = "HolyWrath",           sound = "HolyWrath.ogg" },         -- ��ʥ��ŭ
     [48801]  = { key = "Exorcism",            sound = "Exorcism.ogg" },          -- ��а��
     [48806]  = { key = "HammerOfWrath",       sound = "HammerofWrath.ogg" },     -- ��ŭ֮��
+    [62124]  = { key = "HandOfReckoning",     sound = "Reckoning.ogg" },         -- 清算之手
     
     -- Holy/Protection Abilities
     [53563]  = { key = "BeaconOfLight",       sound = "BeaconofLight.ogg" },     -- ʥ�����

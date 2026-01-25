@@ -8,54 +8,34 @@ ns.ProfileManager:RegisterPreset({
         version = 1,
         class = "DRUID",
         spec = 102, -- Balance
-        desc = "WotLK Balance for Titan Forged T1. Focus on Eclipse rotation + DoT maintenance."
+        desc = "泰坦T1平衡德鲁伊。日月蚀循环是核心，在Buff期间100% spam对应技能（+40%伤害）。DoT低优先级维持。"
     },
     
     layout = {
         slots = {
-            [1] = { action = "wrath" },
-            [2] = { action = "starfire" },
-            [3] = { action = "moonfire" },
-            [4] = { action = "insect_swarm" },
-            [5] = { action = "starfall" },
-            [6] = { action = "force_of_nature" },
-            [7] = { action = "typhoon" },
-            [8] = { action = "hurricane" }
+            [1] = { action = "wrath" },            -- 愤怒
+            [2] = { action = "starfire" },         -- 星火术
+            [3] = { action = "moonfire" },         -- 月火术
+            [4] = { action = "insect_swarm" },     -- 虫群
+            [5] = { action = "starfall" },         -- 星辰坠落
+            [6] = { action = "typhoon" },          -- 台风
+            [7] = { action = "hurricane" }         -- 飓风
         }
     },
     
     apl = {
-        -- Priority 1: Starfall (major burst CD)
-        -- 4T1: Duration increased from 10s to 12s (+20% damage)
-        "actions+=/starfall",
+        -- 爆发技能：CD好立即使用
+        "actions+=/starfall",                                          -- 星辰坠落：顶级AOE，4T1后持续12秒（+20%伤害）
         
-        -- Priority 2: Force of Nature (summon treants on CD)
-        -- 2T1: Summons 4 treants instead of 3 (+33% treants)
-        "actions+=/force_of_nature",
+        -- 日月蚀循环：核心机制（+40%伤害加成）
+        "actions+=/starfire,if=buff.lunar_eclipse.up",                -- 星火术：月蚀期间100% spam
+        "actions+=/wrath,if=buff.solar_eclipse.up",                   -- 愤怒：日蚀期间100% spam
         
-        -- Priority 3: Moonfire (maintain core DoT)
-        -- Refresh when missing or <3 seconds remaining
-        "actions+=/moonfire,if=!debuff.moonfire.up|debuff.moonfire.remains<3",
+        -- DoT维持：低优先级，不打断日月蚀循环
+        "actions+=/moonfire,if=!debuff.moonfire.up|debuff.moonfire.remains<5",      -- 月火术：DoT剩余<5秒刷新
+        "actions+=/insect_swarm,if=!debuff.insect_swarm.up|debuff.insect_swarm.remains<3",  -- 虫群：DoT剩余<3秒刷新
         
-        -- Priority 4: Insect Swarm (maintain core DoT)
-        -- Refresh when missing or <3 seconds remaining
-        "actions+=/insect_swarm,if=!debuff.insect_swarm.up|debuff.insect_swarm.remains<3",
-        
-        -- Priority 5: Starfire (during Lunar Eclipse)
-        -- Lunar Eclipse: +40% Starfire damage
-        "actions+=/starfire,if=buff.lunar_eclipse.up",
-        
-        -- Priority 6: Wrath (during Solar Eclipse)
-        -- Solar Eclipse: +40% Wrath damage
-        "actions+=/wrath,if=buff.solar_eclipse.up",
-        
-        -- Priority 7: Wrath (default filler to push toward Solar Eclipse)
-        "actions+=/wrath",
-        
-        -- Priority 8: Starfire (alternate filler)
-        "actions+=/starfire",
-        
-        -- Priority 9: Typhoon (emergency filler/knockback)
-        "actions+=/typhoon"
+        -- 主要填充：愤怒推动日蚀循环
+        "actions+=/wrath"                                              -- 愤怒：默认填充技能，推动日蚀循环
     }
 })
