@@ -72,10 +72,13 @@ UI\Options.lua
 
 # Presets (Built-in)
 Presets\Warrior_Arms.lua
+Presets\Warrior_Protection.lua
 Presets\Mage_Fire.lua
 Presets\Mage_Frost.lua
+Presets\Mage_Frost_Orb.lua
 Presets\Paladin_Retribution.lua
 Presets\Druid_Balance.lua
 Presets\Druid_Feral.lua
 Presets\DeathKnight_Frost.lua
+Presets\DeathKnight_Unholy.lua
 

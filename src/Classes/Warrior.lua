@@ -48,6 +48,7 @@ local warriorSpells = {
     [871]    = { key = "ShieldWall",          sound = "ShieldWall.ogg" },
     [12975]  = { key = "LastStand",           sound = "LastStand.ogg" },
     [2565]   = { key = "ShieldBlock",         sound = "ShieldBlock.ogg" },
+    [55694]  = { key = "EnragedRegeneration", sound = "EnragedRegeneration.ogg" },
     
     -- Arms 专精
     [12294]  = { key = "MortalStrike",        sound = "MortalStrike.ogg" },

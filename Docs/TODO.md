@@ -31,17 +31,127 @@
 
 | 分类 | 总数 | 已完成 | 进行中 | 待办 | 完成率 |
 |------|------|--------|--------|------|--------|
+| **核心功能增强** | 2 | 0 | 0 | 2 | 0% |
 | **UI 模块优化** | 5 | 0 | 0 | 5 | 0% |
 | **职业特殊机制** | 6 | 0 | 0 | 6 | 0% |
 | **用户文档** | 10 | 0 | 0 | 10 | 0% |
 | **测试与 QA** | 12 | 0 | 0 | 12 | 0% |
-| **总计** | 33 | 0 | 0 | 33 | 0% |
+| **总计** | 35 | 0 | 0 | 35 | 0% |
 
 ---
 
 ## 📋 任务列表
 
-### P0 - 职业模块完善 🔥
+### P0 - 核心功能增强 🔥
+
+#### 1.1 多目标计数 (active_enemies) ⚙️ **中优先级**
+
+**当前状态**: `state.active_enemies` 固定为 1（占位符）
+
+**实现方案** (推荐 **方案1：战斗日志分析**):
+
+**方案1: COMBAT_LOG_EVENT_UNFILTERED** ⭐ **推荐**
+- 监听战斗日志事件追踪交战敌人的 GUID
+- 3秒内有交互的敌对单位计入 active_enemies
+- 参考实现: `Reference/Omen/Omen.lua` (line 623, 1392)
+- 优点: 准确、性能好、事件驱动
+- 实现位置: `Engine/State/StateReset.lua`
+
+**代码示例**:
+```lua
+local recentEnemies = {}
+local ENEMY_TIMEOUT = 3
+
+function OnCombatLog(timestamp, eventType, _, srcGUID, ..., dstGUID, ...)
+    local now = GetTime()
+    
+    -- 敌人攻击玩家
+    if dstGUID == UnitGUID("player") and srcGUID then
+        if eventType:match("^SWING") or eventType:match("^SPELL") then
+            recentEnemies[srcGUID] = now
+        end
+    end
+    
+    -- 玩家攻击敌人
+    if srcGUID == UnitGUID("player") and dstGUID then
+        if eventType:match("^SWING") or eventType:match("^SPELL") then
+            recentEnemies[dstGUID] = now
+        end
+    end
+end
+
+function GetActiveEnemies()
+    local count = 0
+    local now = GetTime()
+    
+    for guid, lastSeen in pairs(recentEnemies) do
+        if (now - lastSeen) <= ENEMY_TIMEOUT then
+            count = count + 1
+        else
+            recentEnemies[guid] = nil
+        end
+    end
+    
+    return count
+end
+```
+
+**方案2: 手动标记** (临时方案)
+- 添加 AOE 模式开关 (`db.profile.aoeMode`)
+- 玩家通过宏或设置切换
+- 优点: 实现简单，适合坦克手动控制
+
+**参考文档**: 
+- `Docs/profiles/IMPLEMENTATION_NOTES.md` - 完整实现方案
+- `Reference/Omen/Omen.lua` - Omen 威胁插件 GUID 追踪
+- `Reference/Recount/Tracker.lua` - Recount 战斗日志解析
+
+**预计工作量**: 3-4 小时  
+**影响模块**: StateReset, Core/UpdateLoop (事件注册)
+
+---
+
+#### 1.2 目标施法检测 (target.is_casting) ⚙️ **低优先级**
+
+**当前状态**: 仅检测玩家施法，不检测目标施法
+
+**实现方案**:
+```lua
+-- Engine/State/StateReset.lua
+local function ResetTargetCasting(state)
+    if UnitExists("target") then
+        local castName, _, _, startTime, endTime = UnitCastingInfo("target")
+        if castName then
+            state.target.casting = {
+                spell = castName,
+                start_time = startTime / 1000,
+                end_time = endTime / 1000,
+                remains = math.max(0, (endTime / 1000) - state.now)
+            }
+            state.target.is_casting = true
+        else
+            -- 检测引导法术
+            local channelName, _, _, startTime, endTime = UnitChannelInfo("target")
+            if channelName then
+                state.target.casting = {
+                    spell = channelName,
+                    start_time = startTime / 1000,
+                    end_time = endTime / 1000,
+                    remains = math.max(0, (endTime / 1000) - state.now)
+                }
+                state.target.is_casting = true
+            else
+                state.target.is_casting = false
+            end
+        end
+    end
+end
+```
+
+**预计工作量**: 30 分钟  
+**影响模块**: StateReset
+
+---
 
 #### 1.3 职业特殊机制 ⚙️ **低优先级**
 
