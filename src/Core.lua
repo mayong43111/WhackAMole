@@ -54,6 +54,15 @@ function WhackAMole:OnCombatLogEvent(event, ...)
     EventHandler.OnCombatLogEvent(self, event, ...)
 end
 
+function WhackAMole:OnSpellCastSucceeded(event, unit, _, spellID)
+    if unit ~= "player" then return end
+    
+    local name = GetSpellInfo(spellID)
+    if ns.State and ns.State.RecordSpellCast then
+        ns.State:RecordSpellCast(spellID, name)
+    end
+end
+
 -- =========================================================================
 -- 配置管理
 -- =========================================================================

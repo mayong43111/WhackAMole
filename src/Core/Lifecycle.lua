@@ -66,6 +66,7 @@ function Lifecycle.Initialize(addon)
     -- 7. 注册事件
     addon:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEvent")
     addon:RegisterEvent("PLAYER_ENTERING_WORLD", "OnPlayerEnteringWorld")
+    addon:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", "OnSpellCastSucceeded")
     
     -- 8. 初始化专精检测
     ns.SpecDetection:Initialize()

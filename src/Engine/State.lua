@@ -70,6 +70,21 @@ if ns.BuildActionMap and (not ns.ActionMap or not next(ns.ActionMap)) then
     ns.BuildActionMap()
 end
 
+-- =========================================================================
+-- Recent Cast Tracking (Latency Compensation)
+-- =========================================================================
+state.lastSpellCast = {}
+
+function state:RecordSpellCast(spellID, spellName)
+    local now = GetTime()
+    if spellID then
+        self.lastSpellCast[spellID] = now
+    end
+    if spellName then
+        self.lastSpellCast[spellName] = now
+    end
+end
+
 local mt_spell = {
     __call = function(t, id)
         -- 获取技能名称以处理等级问题

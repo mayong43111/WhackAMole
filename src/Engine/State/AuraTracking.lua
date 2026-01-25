@@ -66,7 +66,26 @@ local function FindAura(cache, id, stateNow)
     end
     
     -- Step 2: 查询 Aura 缓存
-    local result = QueryAuraCache(cache, id) or aura_down
+    local result = QueryAuraCache(cache, id)
+
+    -- Step 2.5: 延迟补偿 (如果 Debuff 还没出现，但我们刚刚施放过，则假定它存在)
+    -- 注意: 只应用 1.0 秒内的施法记录，避免过期的施法干扰
+    if not result and cache == debuff_cache and ns.State and ns.State.lastSpellCast then
+        local lastTime = ns.State.lastSpellCast[id]
+        if lastTime and (GetTime() - lastTime) < 1.0 then
+             result = {
+                  up = true,
+                  down = false,
+                  mine = true,
+                  count = 1,
+                  remains = 12,        -- 假定持续时间 (足够通过检测即可)
+                  duration = 12,
+                  expirationTime = GetTime() + 12
+             }
+        end
+    end
+    
+    result = result or aura_down
     
     -- Step 3: 缓存结果并返回
     StateInit.SetCachedResult(cacheKey, result)
