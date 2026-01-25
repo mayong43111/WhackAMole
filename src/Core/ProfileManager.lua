@@ -80,6 +80,27 @@ function ns.ProfileManager:GetProfile(id)
     return nil
 end
 
+-- Fetch a profile by name (searches both builtin and user profiles)
+function ns.ProfileManager:GetProfileByName(name)
+    if not name then return nil end
+    
+    -- Search in builtin profiles
+    for id, profile in pairs(self.builtIn) do
+        if profile.meta and profile.meta.name == name then
+            return profile, id
+        end
+    end
+    
+    -- Search in user profiles
+    for id, profile in pairs(self.db.global.profiles) do
+        if profile.meta and profile.meta.name == name then
+            return profile, id
+        end
+    end
+    
+    return nil, nil
+end
+
 -- API to Import (User Profile)
 function ns.ProfileManager:SaveUserProfile(profile)
     -- 自动标记为用户配置
@@ -88,7 +109,21 @@ function ns.ProfileManager:SaveUserProfile(profile)
     end
     profile.meta.type = "user"
     
-    local id = "USER:" .. profile.meta.name .. ":" .. time()
-    self.db.global.profiles[id] = profile
-    return id
+    -- 强制添加 [USER] 前缀（如果没有）
+    if profile.meta.name and not profile.meta.name:match("^%[USER%]") then
+        profile.meta.name = "[USER] " .. profile.meta.name
+    end
+    
+    -- 检查是否已存在同名配置
+    local existingProfile, existingID = self:GetProfileByName(profile.meta.name)
+    if existingProfile and existingID then
+        -- 覆盖已有配置
+        self.db.global.profiles[existingID] = profile
+        return existingID
+    else
+        -- 创建新配置
+        local id = "USER:" .. profile.meta.name .. ":" .. time()
+        self.db.global.profiles[id] = profile
+        return id
+    end
 end

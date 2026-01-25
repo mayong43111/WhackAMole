@@ -21,6 +21,11 @@ local Config = ns.CoreConfig
 -- @param addon WhackAMole 插件实例
 -- @param elapsed 经过的时间
 function UpdateLoop.OnUpdate(addon, elapsed)
+    -- 检查插件是否启用
+    if addon.db and addon.db.global and not addon.db.global.enabled then
+        return
+    end
+    
     -- 节流检查
     if UpdateLoop.ShouldThrottle(addon, elapsed) then 
         return 

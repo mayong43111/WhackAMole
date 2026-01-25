@@ -143,6 +143,32 @@ end
 UpdateLoop.Start(WhackAMole)
 
 -- =========================================================================
+-- 插件启用/禁用控制
+-- =========================================================================
+
+--- 设置插件启用状态
+-- @param enabled boolean 是否启用
+function WhackAMole:SetEnabled(enabled)
+    self.db.global.enabled = enabled
+    
+    if enabled then
+        -- 启用：显示网格、启动引擎
+        if ns.UI and ns.UI.Grid and ns.UI.Grid.Show then
+            ns.UI.Grid:Show()
+        end
+        UpdateLoop.Start(self)
+        ns.Logger:System("|cff00ff00WhackAMole:|r 插件已启用")
+    else
+        -- 禁用：隐藏网格、停止引擎
+        if ns.UI and ns.UI.Grid and ns.UI.Grid.Hide then
+            ns.UI.Grid:Hide()
+        end
+        UpdateLoop.Stop(self)
+        ns.Logger:System("|cffFFD100WhackAMole:|r 插件已禁用，使用 /awm 重新启用")
+    end
+end
+
+-- =========================================================================
 -- 重构完成标记
 -- =========================================================================
 

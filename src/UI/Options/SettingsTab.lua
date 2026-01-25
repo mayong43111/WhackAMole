@@ -12,10 +12,31 @@ function ns.UI.Options:GetSettingsTab(WhackAMole)
         name = "设置",
         order = 4,
         args = {
+            header_general = { 
+                type = "header", 
+                name = "通用", 
+                order = 0 
+            },
+            enable_addon = {
+                type = "toggle",
+                name = "启用插件",
+                desc = "关闭后将隐藏动作条并停止技能推荐。可随时通过 /awm 重新启用。",
+                get = function() 
+                    return WhackAMole.db.global.enabled 
+                end,
+                set = function(_, val) 
+                    WhackAMole.db.global.enabled = val
+                    if WhackAMole.SetEnabled then
+                        WhackAMole:SetEnabled(val)
+                    end
+                end,
+                width = "full",
+                order = 1
+            },
             header_ui = { 
                 type = "header", 
                 name = "界面", 
-                order = 1 
+                order = 10 
             },
             lock = {
                 type = "toggle",
@@ -28,12 +49,15 @@ function ns.UI.Options:GetSettingsTab(WhackAMole)
                     ns.UI.Grid:SetLock(val) 
                 end, 
                 width = "full",
-                order = 2
+                order = 11,
+                disabled = function()
+                    return not WhackAMole.db.global.enabled
+                end
             },
             header_audio = { 
                 type = "header", 
                 name = "音频", 
-                order = 10 
+                order = 20 
             },
             enable_audio = {
                 type = "toggle",
@@ -46,7 +70,7 @@ function ns.UI.Options:GetSettingsTab(WhackAMole)
                     WhackAMole.db.global.audio.enabled = val 
                 end,
                 width = "full",
-                order = 11
+                order = 21
             },
             audio_volume = {
                 type = "range",
@@ -62,7 +86,7 @@ function ns.UI.Options:GetSettingsTab(WhackAMole)
                     WhackAMole.db.global.audio.volume = val 
                 end,
                 width = "full",
-                order = 12,
+                order = 22,
                 disabled = function() 
                     return not WhackAMole.db.global.audio.enabled 
                 end
@@ -74,7 +98,10 @@ function ns.UI.Options:GetSettingsTab(WhackAMole)
                 func = function() 
                     ns.UI.Grid:ClearAllAssignments() 
                 end,
-                order = 20
+                order = 30,
+                disabled = function()
+                    return not WhackAMole.db.global.enabled
+                end
             }
         }
     }

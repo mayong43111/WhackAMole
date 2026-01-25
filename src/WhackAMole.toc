@@ -1,4 +1,4 @@
-## Interface: 30403
+## Interface: 38000
 ## Title: WhackAMole (打地鼠)
 ## Notes: Whac-A-Mole Rotation Helper
 ## Author: WhackAMole Dev

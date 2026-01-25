@@ -25,7 +25,7 @@ function ns.UI.Options:GetProfileTab(WhackAMole)
                 name = "当前配置",
                 desc = "选择您的专精逻辑。",
                 order = 2,
-                width = "full",
+                width = "double",  -- 从 normal 改为 double，显示更宽
                 values = function()
                     local t = {}
                     for _, p in ipairs(profiles) do
@@ -42,6 +42,62 @@ function ns.UI.Options:GetProfileTab(WhackAMole)
                         WhackAMole:SwitchProfile(p)
                     end
                 end 
+            },
+            export_button = {
+                type = "execute",
+                name = "导出配置",
+                desc = "导出当前配置为字符串，可分享给他人。",
+                order = 3,
+                width = "half",  -- 从 normal 改为 half，按钮变小
+                func = function()
+                    local profileID = WhackAMole.db.char.activeProfileID
+                    local profile = ns.ProfileManager:GetProfile(profileID)
+                    
+                    if not profile then
+                        ns.Logger:System("|cffff0000WhackAMole:|r 没有激活的配置可导出")
+                        return
+                    end
+                    
+                    local exportString = ns.Serializer:ExportProfile(profile)
+                    if exportString then
+                        -- 注册并显示弹窗
+                        if not StaticPopupDialogs["WHACKAMOLE_EXPORT"] then
+                            StaticPopupDialogs["WHACKAMOLE_EXPORT"] = {
+                                text = "导出配置字符串（Ctrl+C 复制）:",
+                                button1 = "关闭",
+                                hasEditBox = true,
+                                editBoxWidth = 350,
+                                OnShow = function(self)
+                                    local editBox = self.editBox or _G[self:GetName().."EditBox"]
+                                    if editBox then
+                                        editBox:SetText(self.text.text_arg1 or "")
+                                        editBox:HighlightText()
+                                        editBox:SetFocus()
+                                    end
+                                end,
+                                timeout = 0,
+                                whileDead = true,
+                                hideOnEscape = true,
+                                preferredIndex = 3
+                            }
+                        end
+                        
+                        local dialog = StaticPopup_Show("WHACKAMOLE_EXPORT")
+                        if dialog then
+                            dialog.text.text_arg1 = exportString
+                            local editBox = dialog.editBox or _G[dialog:GetName().."EditBox"]
+                            if editBox then
+                                editBox:SetText(exportString)
+                                editBox:HighlightText()
+                                editBox:SetFocus()
+                            end
+                        end
+                        
+                        ns.Logger:System("|cff00ff00WhackAMole:|r 配置已导出，请复制弹窗中的字符串")
+                    else
+                        ns.Logger:System("|cffff0000WhackAMole:|r 导出失败")
+                    end
+                end
             },
             doc_header = {
                 type = "header",

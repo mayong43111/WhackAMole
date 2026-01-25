@@ -30,6 +30,7 @@ Config.PRIORITY_EVENTS = {
 
 Config.DEFAULT_DB = {
     global = {
+        enabled = true,  -- 插件总开关
         audio = { 
             enabled = false,
             volume = 1.0  -- 0.0 to 1.0 (预留音量控制)

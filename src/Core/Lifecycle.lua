@@ -55,6 +55,7 @@ function Lifecycle.Initialize(addon)
     
     -- 6. 注册聊天命令
     addon:RegisterChatCommand("wam", "OnChatCommand")
+    addon:RegisterChatCommand("awm", "OnChatCommand")
     
     -- 6. 初始化事件节流系统
     addon.eventThrottle = {
@@ -106,6 +107,21 @@ function Lifecycle.WaitForSpecAndLoad(addon, retryCount)
         if ns.CoreProfileLoader then
             ns.CoreProfileLoader.InitializeProfile(addon, spec)
         end
+        
+        -- 应用启用状态（初始化后检查）
+        C_Timer.After(0.1, function()
+            if addon.db and addon.db.global then
+                if not addon.db.global.enabled then
+                    -- 如果禁用，隐藏网格
+                    if ns.UI and ns.UI.Grid and ns.UI.Grid.Hide then
+                        ns.UI.Grid:Hide()
+                    end
+                    ns.Logger:System("|cffFFD100WhackAMole:|r 插件已禁用，使用 /awm 启用")
+                else
+                    ns.Logger:System("|cff00ff00WhackAMole:|r 插件已就绪")
+                end
+            end
+        end)
     else
         -- 未找到专精，继续重试
         if retryCount < 10 then
@@ -173,6 +189,7 @@ function Lifecycle.OnChatCommand(addon, input)
     else
         -- 显示帮助
         addon:Print("可用命令:")
+        addon:Print("  /wam 或 /awm - 打开配置界面")
         addon:Print("  /wam lock/unlock - 锁定/解锁框架")
         addon:Print("  /wam debug - 显示调试窗口")
     end

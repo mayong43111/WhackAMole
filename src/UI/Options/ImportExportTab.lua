@@ -1,7 +1,7 @@
 local _, ns = ...
 
 -- UI/Options/ImportExportTab.lua
--- Import/Export configuration tab
+-- Import configuration tab
 
 ns.UI = ns.UI or {}
 ns.UI.Options = ns.UI.Options or {}
@@ -9,74 +9,30 @@ ns.UI.Options = ns.UI.Options or {}
 function ns.UI.Options:GetImportExportTab(WhackAMole)
     return {
         type = "group",
-        name = "导入/导出",
+        name = "导入配置",
         order = 2,
         args = {
-            export_header = {
-                type = "header",
-                name = "导出配置",
-                order = 1
-            },
-            export_desc = {
-                type = "description",
-                name = "将当前配置导出为字符串，可分享给他人。",
-                fontSize = "medium",
-                order = 2
-            },
-            export_button = {
-                type = "execute",
-                name = "生成导出字符串",
-                desc = "导出当前激活的配置",
-                func = function()
-                    local profileID = WhackAMole.db.char.activeProfileID
-                    local profile = ns.ProfileManager:GetProfile(profileID)
-                    
-                    if not profile then
-                        ns.Logger:System("|cffff0000WhackAMole:|r 没有激活的配置可导出")
-                        return
-                    end
-                    
-                    local exportString = ns.Serializer:ExportProfile(profile)
-                    if exportString then
-                        WhackAMole.exportString = exportString
-                        ns.Logger:System("|cff00ff00WhackAMole:|r 导出成功！请复制下方文本框中的字符串。")
-                        LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
-                    else
-                        ns.Logger:System("|cffff0000WhackAMole:|r 导出失败")
-                    end
-                end,
-                order = 3
-            },
-            export_display = {
-                type = "input",
-                name = "导出字符串",
-                desc = "复制此字符串分享配置",
-                get = function() return WhackAMole.exportString or "点击上方按钮生成" end,
-                set = function() end, -- Read-only
-                multiline = 8,
-                width = "full",
-                order = 4
-            },
             import_header = {
                 type = "header",
                 name = "导入配置",
-                order = 10
+                order = 1
             },
             import_desc = {
                 type = "description",
-                name = "粘贴从他人获得的配置字符串，导入到你的插件中。",
+                name = "粘贴从他人获得的配置字符串到下方文本框，点击导入按钮即可加载配置。\n\n" ..
+                      "|cffFFD100提示:|r 导出功能位于「配置选择」标签页。",
                 fontSize = "medium",
-                order = 11
+                order = 2
             },
             import_input = {
                 type = "input",
-                name = "粘贴字符串",
-                desc = "粘贴配置字符串到此处",
+                name = "粘贴配置字符串",
+                desc = "将配置字符串粘贴到此处",
                 get = function() return WhackAMole.importString or "" end,
                 set = function(_, val) WhackAMole.importString = val end,
-                multiline = 8,
+                multiline = 25,
                 width = "full",
-                order = 12
+                order = 3
             },
             import_button = {
                 type = "execute",
@@ -126,7 +82,19 @@ function ns.UI.Options:GetImportExportTab(WhackAMole)
                     ns.Logger:System("|cff00ff00WhackAMole:|r 导入成功: " .. profile.meta.name)
                     LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
                 end,
-                order = 13
+                order = 4,
+                width = "normal"
+            },
+            clear_button = {
+                type = "execute",
+                name = "清空",
+                desc = "清空文本框内容",
+                func = function()
+                    WhackAMole.importString = ""
+                    LibStub("AceConfigRegistry-3.0"):NotifyChange("WhackAMole")
+                end,
+                order = 5,
+                width = "normal"
             }
         }
     }

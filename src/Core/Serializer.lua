@@ -55,6 +55,14 @@ function ns.Serializer:ImportProfile(inputString)
     -- 4. 自动标记为用户配置
     if profileTable and profileTable.meta then
         profileTable.meta.type = "user"
+        
+        -- 5. 强制添加 [USER] 前缀（如果不存在）
+        if profileTable.meta.name then
+            local name = profileTable.meta.name
+            if not name:match("^%[USER%]") then
+                profileTable.meta.name = "[USER] " .. name
+            end
+        end
     end
     
     return profileTable
