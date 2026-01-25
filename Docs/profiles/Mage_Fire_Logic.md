@@ -59,26 +59,26 @@
 
 ### 常规单体循环 (Single Target)
 
-1.  **活动炸弹 (Living Bomb)**
+1.  **法力管理 (Mana)**
+    *   **法力宝石 (Mana Gem)**: 当法力值不足时 (如 < 85%) 且宝石可用时使用。宝石不占用公共冷却(GCD)，应绑定在宏里或自动使用。
+    *   **唤醒 (Evocation)**: 仅在法力值极低 (如 < 15%) 且无其他回蓝手段时使用。
+
+2.  **活动炸弹 (Living Bomb)**
     *   **条件**: 目标身上没有活动炸弹，且目标存活时间 > 12秒。
     *   **细节**: 炸弹爆炸是核心伤害来源，且能触发法术连击。**严禁** 在炸弹爆炸前重新施放（会顶掉爆炸伤害）。
 
-2.  **炎爆术 (Pyroblast) - 法术连击**
+3.  **炎爆术 (Pyroblast) - 法术连击**
     *   **条件**: `法术连击` Buff 存在。
     *   **理由**: 免费、瞬发、高伤。是火法输出的核心构件。
     *   **连号处理**: 如果你在读火球时触发了连击，打完火球立刻接炎爆（火球+炎爆几乎同时命中）。
 
-3.  **燃烧 (Combustion)**
+4.  **燃烧 (Combustion)**
     *   **条件**: 冷却就绪，且目标身上有活动炸弹。
     *   **时机**: 尽量配合 4T10 爆发期。但 3.3.5 的燃烧机制是“增加暴击几率直到暴击 3 次”，是一个不稳定的增益，CD 好了就用由于 CD 较短。
 
-4.  **镜像 (Mirror Image) - 4T10 爆发**
+5.  **镜像 (Mirror Image) - 4T10 爆发**
     *   **条件**: 冷却就绪，且是 Boss 战/高血量目标。
     *   **理由**: 获得 18% 法伤加成，极强爆发。
-
-5.  **灼烧 (Scorch) - 补易伤**
-    *   **条件**: 目标缺少 5% 暴击 Buff (强化灼烧/暗影烈焰)。
-    *   **理由**: 5% 暴击对火法至关重要。
 
 6.  **火球术 (Fireball)**
     *   **条件**: 站桩填充。
@@ -97,45 +97,55 @@
 ## 拟定 Lua 代码逻辑 - T1阶段
 
 ```lua
--- 1. 最高优先级：法术连击炎爆
+-- 0. 法力管理 (无GCD，穿插)
+if item(I_ManaSapphire).ready and player.mana_percent < 85 then
+    use_item(I_ManaSapphire) -- 使用法力宝石
+end
+
+-- 0.5 唤醒 (救急)
+if spell(S_Evocation).ready and player.mana_percent < 10 then
+    return 8 -- 唤醒
+end
+
+-- 1. 最高优先级：镜像爆发
+if spell(S_MirrorImage).ready then
+    return 6 -- 镜像 (18%法伤加成)
+end
+
+-- 2. 法术连击炎爆
 if buff(B_HotStreak).up then
     return 2 -- 炎爆术 (瞬发)
 end
 
--- 2. 维持活动炸弹 (不要在爆炸前刷新)
+-- 3. 维持活动炸弹 (不要在爆炸前刷新)
 if not debuff(S_LivingBomb).up and target.time_to_die > 12 then
     return 3 -- 活动炸弹
 end
 
--- 3. 爆发：燃烧 (配合炸弹和4T1效果)
+-- 4. 爆发：燃烧 (配合炸弹和4T1效果)
 if spell(S_Combustion).ready and debuff(S_LivingBomb).up then
     return 5 -- 燃烧
 end
 
--- 4. 维持5%暴击易伤 (如果缺少)
-if not debuff(D_ImprovedScorch).up 
-   and not debuff(D_ShadowMastery).up 
-   and not debuff(D_WintersChill).up 
-   and not player.moving then
-    return 7 -- 灼烧
-end
-
--- 5. 移动填充
+-- 7. 移动填充
 if player.moving then
-    if spell(S_FireBlast).ready then return 6 end -- 火冲击
     if buff(B_HotStreak).up then return 2 end -- 移动中瞬发炎爆
-    return 7 -- 灼烧
+    if spell(S_LivingBomb).ready and not debuff(S_LivingBomb).up then return 3 end -- 移动补炸弹
+    if spell(S_FireBlast).ready then return 7 end -- 火冲击
+    return 4 -- 灼烧 (实在没事做才打)
 end
 
--- 6. 主要填充：火球术
+-- 8. 主要填充：火球术
 return 1 -- 火球术
 ```
 
 **核心思路**: 
-- 4T1强化了法术连击触发率，所以循环重心是**疯狂暴击触发连击**
-- 保持炸弹和易伤Debuff，其余时间全力输出火球术等待连击触发
-- 燃烧CD好了就用（增加暴击率 = 更多连击）
-- 移动时优先消耗连击，其次火冲击/灼烧
+- **镜像优先**: CD好了立即使用，18%法伤提升巨大
+- **法术连击机制**: 4T1强化了连击触发率，循环重心是疯狂暴击触发连击
+- **保持DOT和易伤**: 维持活动炸弹和5%暴击debuff
+- **燃烧配合**: CD好了就用（增加暴击率 = 更多连击）
+- **移动处理**: 优先消耗连击，其次火冲击/灼烧
+- **主要输出**: 火球术spam等待连击触发
 
 ## 泰坦重铸特色说明 - T1阶段
 *   **4T1核心价值**: 务必获取4件套T1！+2%暴击率看似不多，但对法术连击触发率有约10%的提升，是火法的质变。

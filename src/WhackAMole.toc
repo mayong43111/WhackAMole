@@ -8,12 +8,16 @@
 # Libraries
 embeds.xml
 
+# Logger (Load Early)
+Core\Logger.lua
+
 # Utilities
 Utils.lua
 
 # Shared Constants (Loaded Early)
 Core\Constants.lua
 Core\ActionMap.lua
+Core\Hooks.lua
 
 # Class Detection
 Classes\Registry.lua
@@ -26,30 +30,50 @@ Classes\Druid.lua
 # Engine
 Engine\SimCParser.lua
 Engine\APLExecutor.lua
+# State Module (Phase 1 Refactored)
+Engine\State\Init.lua
+Engine\State\AuraTracking.lua
+Engine\State\StateReset.lua
+Engine\State\StateAdvance.lua
 Engine\State.lua
 
 # Core
+# Core Module (Phase 1.2 Refactored)
+Core\Config.lua
+Core\Lifecycle.lua
+Core\ProfileLoader.lua
+Core\EventHandler.lua
+Core\UpdateLoop.lua
+Core.lua
 Core\SpecDetection.lua
-Core\Logger.lua
 Core\ProfileManager.lua
 Core\Serializer.lua
 Core\Audio.lua
-Core\Hooks.lua
-Core.lua
 
 # UI
 UI\DebugTabs\LogTab.lua
+UI\DebugTabs\SystemLogTab.lua
 UI\DebugTabs\PerfTab.lua
 UI\DebugWindow.lua
+# Grid Module (Phase 2.1 Refactored)
+UI\Grid\GridState.lua
+UI\Grid\GridFrame.lua
+UI\Grid\GridSlots.lua
+UI\Grid\GridDragDrop.lua
+UI\Grid\GridVisuals.lua
 UI\Grid.lua
+# Options Module (Phase 2.2 Refactored)
+UI\Options\ProfileTab.lua
+UI\Options\ImportExportTab.lua
+UI\Options\APLEditorTab.lua
+UI\Options\SettingsTab.lua
+UI\Options\AboutTab.lua
 UI\Options.lua
 
 # Presets (Built-in)
-Presets\Warrior_Leveling.lua
 Presets\Warrior_Arms.lua
-Presets\Warrior_Fury.lua
-Presets\Warrior_Prot.lua
 Presets\Mage_Fire.lua
+Presets\Mage_Frost.lua
 Presets\Paladin_Retribution.lua
 Presets\Druid_Balance.lua
 Presets\Druid_Feral.lua

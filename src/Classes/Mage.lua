@@ -46,16 +46,21 @@ local mageSpells = {
     [22959]  = { key = "ImprovedScorch" },    -- Debuff
     
     -- Frost 专精
-    [116]    = { key = "Frostbolt",           sound = "Frostbolt.ogg" },
-    [30455]  = { key = "IceLance",            sound = "IceLance.ogg" },
-    [122]    = { key = "FrostNova",           sound = "FrostNova.ogg" },
+    [42842]  = { key = "Frostbolt",           sound = "Frostbolt.ogg" },      -- 等级80（原116）
+    [42914]  = { key = "IceLance",            sound = "IceLance.ogg" },       -- 等级80（原30455）
+    [42917]  = { key = "FrostNova",           sound = "FrostNova.ogg" },      -- 等级80（原122）
+    [42931]  = { key = "ConeOfCold",          sound = "ConeOfCold.ogg" },     -- 冰锥术
+    [47610]  = { key = "FrostfireBolt",       sound = "FrostfireBolt.ogg" },  -- 霜火球
+    [84714]  = { key = "FrostfireOrb",        sound = "FrostfireOrb.ogg" },   -- 寒冰宝珠（泰坦服）
     [11958]  = { key = "ColdSnap",            sound = "ColdSnap.ogg" },
     [31687]  = { key = "SummonWaterElemental", sound = "SummonWaterElemental.ogg" },
     [44572]  = { key = "DeepFreeze",          sound = "DeepFreeze.ogg" },
     [44544]  = { key = "FingersOfFrost" },    -- Buff
     [57761]  = { key = "BrainFreeze" },       -- Buff
     [12472]  = { key = "IcyVeins",            sound = "IcyVeins.ogg" },
-    [12579]  = { key = "WintersChill" },      -- Debuff
+    [28593]  = { key = "WintersChill" },      -- Debuff（更新ID）
+    [12494]  = { key = "Frostbite" },         -- Debuff（寒冰指）
+    [42940]  = { key = "Blizzard",            sound = "Blizzard.ogg" },       -- 暴风雪
     
     -- Arcane 专精
     [30451]  = { key = "ArcaneBlast",         sound = "ArcaneBlast.ogg" },

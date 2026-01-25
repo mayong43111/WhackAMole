@@ -10,24 +10,29 @@ ns.ActionMap = {}
 function ns.BuildActionMap()
     if not ns.Spells then return end
     
-    for id, data in pairs(ns.Spells) do
-        if data.key then
-            -- Convert "Execute" -> "execute" (SimC is lowercase)
-            -- Convert "MortalStrike" -> "mortal_strike" (CamelCase to snake_case?)
-            -- Usually SimC uses snake_case.
-            
-            -- Basic Lowercase
-            local lowerKey = string.lower(data.key)
-            ns.ActionMap[lowerKey] = id
-            
-            -- Snake Case conversion? 
-            -- If key is "MortalStrike", SimC uses "mortal_strike".
-            -- Simple regex to insert underscore before Caps?
-            local snake = data.key:gsub("(%u)", "_%1"):sub(2):lower()
-            if snake ~= lowerKey then
-                ns.ActionMap[snake] = id
-            end
+    local function addMapping(key, id)
+        if not key then return end
+        
+        -- Basic Lowercase: "TemplarsVerdict" -> "templarsverdict"
+        local lowerKey = string.lower(key)
+        ns.ActionMap[lowerKey] = id
+        
+        -- Snake Case conversion: "TemplarsVerdict" -> "templars_verdict"
+        -- Logic: Insert underscore before Uppercase letters, then lowercase everything.
+        -- Handle leading underscore correctly.
+        local snake = key:gsub("(%u)", "_%1")
+        if snake:sub(1,1) == "_" then
+            snake = snake:sub(2)
         end
+        snake = snake:lower()
+        
+        if snake ~= lowerKey then
+             ns.ActionMap[snake] = id
+        end
+    end
+
+    for id, data in pairs(ns.Spells) do
+        addMapping(data.key, id)
     end
     
     -- 解决技术债务：自动从职业模块加载 spells
@@ -37,15 +42,7 @@ function ns.BuildActionMap()
             for specID, specData in pairs(classData) do
                 if type(specData) == "table" and specData.spells then
                     for id, data in pairs(specData.spells) do
-                        if data.key and not ns.ActionMap[string.lower(data.key)] then
-                            local lowerKey = string.lower(data.key)
-                            ns.ActionMap[lowerKey] = id
-                            
-                            local snake = data.key:gsub("(%u)", "_%1"):sub(2):lower()
-                            if snake ~= lowerKey then
-                                ns.ActionMap[snake] = id
-                            end
-                        end
+                        addMapping(data.key, id)
                     end
                 end
             end

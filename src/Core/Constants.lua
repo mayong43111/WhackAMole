@@ -20,7 +20,7 @@ ns.Spells = {
     [12294]  = { key = "MortalStrike",        sound = "MortalStrike.ogg" },        -- 致死打击
     [7384]   = { key = "Overpower",           sound = "Overpower.ogg" },           -- 压制
     [46924]  = { key = "Bladestorm",          sound = "Bladestorm.ogg" },          -- 利刃风暴
-    [1719]   = { key = "Recklessness",        sound = "recklessness.ogg" },        -- 鲁莽
+    [1719]   = { key = "Recklessness",        sound = "Recklessness.ogg" },        -- 鲁莽
     [871]    = { key = "ShieldWall",          sound = "ShieldWall.ogg" },          -- 盾墙
     [12975]  = { key = "LastStand",           sound = "LastStand.ogg" },           -- 破釜沉舟
     [2565]   = { key = "ShieldBlock",         sound = "ShieldBlock.ogg" },         -- 盾牌格挡
@@ -30,22 +30,22 @@ ns.Spells = {
     [6552]   = { key = "Pummel",              sound = "Pummel.ogg" },              -- 拳击
     [23920]  = { key = "SpellReflection",     sound = "SpellReflection.ogg" },     -- 法术反射
     [3411]   = { key = "Intervene",           sound = "Intervene.ogg" },           -- 援护
-    [12328]  = { key = "SweepingStrikes",     sound = "sweepingStrikes.ogg" },     -- 横扫攻击
+    [12328]  = { key = "SweepingStrikes",     sound = "SweepingStrikes.ogg" },     -- 横扫攻击
     [64382]  = { key = "ShatteringThrow",     sound = "ShatteringThrow.ogg" },     -- 碎裂投掷
     [5246]   = { key = "IntimidatingShout",   sound = "IntimidatingShout.ogg" },   -- 破胆怒吼
-    [772]    = { key = "Rend",                sound = "Rend.ogg" },                -- 撕裂
     [23881]  = { key = "Bloodthirst",         sound = "Bloodthirst.ogg" },         -- 嗜血
     [1680]   = { key = "Whirlwind",           sound = "Whirlwind.ogg" },           -- 旋风斩
     [1464]   = { key = "Slam",                sound = "Slam.ogg" },                -- 猛击
     [34428]  = { key = "VictoryRush",         sound = "VictoryRush.ogg" },         -- 乘胜追击
+    [47465]  = { key = "Rend",                sound = "Rend.ogg" },                -- 撕裂 (等级10, 80级最高等级)
     [6572]   = { key = "Revenge",             sound = "Revenge.ogg" },             -- 复仇
     [23922]  = { key = "ShieldSlam",          sound = "ShieldSlam.ogg" },          -- 盾牌猛击
     [46968]  = { key = "Shockwave",           sound = "Shockwave.ogg" },           -- 震荡波
     [20243]  = { key = "Devastate",           sound = "Devastate.ogg" },           -- 毁灭打击
     [12809]  = { key = "ConcussionBlow",      sound = "ConcussionBlow.ogg" },      -- 震荡猛击
     [78]     = { key = "HeroicStrike",        sound = "HeroicStrike.ogg" },        -- 英勇打击
-    [52437]  = { key = "SuddenDeath" },                                            -- 猝死 (Buff)
-    [46916]  = { key = "Bloodsurge" },                                             -- 猛击! (Buff)
+    [52437]  = { key = "SuddenDeath",         sound = "Execute.ogg"},              -- 猝死 (Buff) -> 斩杀音效
+    [46916]  = { key = "Bloodsurge",          sound = "Slam.ogg" },                -- 猛击! (Buff) -> 猛击音效
 
     -- ---------------------------------------------------------------
     -- DEATH KNIGHT (死亡骑士)

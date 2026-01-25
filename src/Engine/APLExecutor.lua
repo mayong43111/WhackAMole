@@ -2,15 +2,23 @@ local _, ns = ...
 local APLExecutor = {}
 ns.APLExecutor = APLExecutor
 
+-- 缓存上次执行的动作，用于减少日志记录
+local lastAction = nil
+
 --- Iterates through the APL and returns the first action whose condition is met.
 -- @param apl table: The APL list (array of entries). Each entry should have { action = "name", condition = function(state) ... end }
 -- @param state table: The current game state object.
 -- @return string|nil: The name of the action to perform, or nil if no action is met.
 function APLExecutor.Process(apl, state)
-    if not apl then return nil end
+    if not apl then 
+        ns.Logger:Warn("APL", "APL is nil!")
+        return nil 
+    end
     
-    -- 直接调用，内部会判断是否需要记录
-    ns.Logger:Log("APL", "--- Start APL Process ---")
+    if #apl == 0 then
+        ns.Logger:Warn("APL", "APL is empty!")
+        return nil
+    end
 
     for i, entry in ipairs(apl) do
         local allowed = true
@@ -24,19 +32,15 @@ function APLExecutor.Process(apl, state)
                 local success, result = pcall(entry.condition, state)
                 if success then
                     allowed = result
-                    ns.Logger:Log("APL", string.format("Action: %s | Cond: TRUE", entry.action or "Unknown"))
                 else
-                    -- On error, treat as false? Or log?
+                    -- 错误必须记录
                     allowed = false
-                    ns.Logger:Log("Error", string.format("Action: %s | Cond: ERROR (%s)", entry.action or "Unknown", tostring(result)))
+                    ns.Logger:Error("APL", string.format("条件评估错误 - Action: %s | Error: %s", entry.action or "Unknown", tostring(result)))
                 end
             else
                 -- If it's not a function (e.g. static boolean), use it directly
                 allowed = entry.condition
-                ns.Logger:Log("APL", string.format("Action: %s | Cond: Static %s", entry.action or "Unknown", tostring(allowed)))
             end
-        else
-            ns.Logger:Log("APL", string.format("Action: %s | Cond: NONE (Always True)", entry.action or "Unknown"))
         end
         
         if allowed then
@@ -54,20 +58,36 @@ function APLExecutor.Process(apl, state)
                      -- Check consistency
                      if spellState.ready == false then
                          ready = false
-                         ns.Logger:Log("APL", string.format(" -> Skipped: Not Ready (Usable=%s, CD_Remains=%s)", tostring(spellState.usable), tostring(spellState.cooldown_remains)))
+                         -- 详细记录为什么不可用
+                         ns.Logger:Log("APL", string.format("[%d] %s: 条件通过但技能不可用 (CD:%.1f, usable:%s)", 
+                             i, entry.action, spellState.cooldown_remains or 0, tostring(spellState.usable)))
                      end
                  else
-                     ns.Logger:Log("Warn", string.format(" -> Skipped: Spell State Missing for '%s'", entry.action))
+                     -- 错误必须记录
+                     ready = false
+                     ns.Logger:Warn("APL", string.format("[%d] 技能状态缺失: %s (ActionMap未找到)", i, entry.action))
                  end
              end
 
              if ready then
-                 ns.Logger:Log("APL", " -> EXECUTING: " .. entry.action)
+                 -- 只有当动作发生变化时才记录
+                 if lastAction ~= entry.action then
+                     ns.Logger:Log("APL", string.format("切换技能: %s -> %s", lastAction or "None", entry.action))
+                     lastAction = entry.action
+                 end
                  return entry.action
              end
+        else
+            -- 条件不满足时也记录（仅前3个）
+            if i <= 3 then
+                ns.Logger:Log("APL", string.format("[%d] %s: 条件不满足", i, entry.action or "Unknown"))
+            end
         end
     end
     
-    ns.Logger:Log("APL", "--- No Action Met ---")
-    return nil
+    -- 只有当从有动作变为无动作时才记录
+    if lastAction ~= nil then
+        ns.Logger:Log("APL", "切换技能: " .. lastAction .. " -> None (无可用动作)")
+        lastAction = nil
+    end
 end

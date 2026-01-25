@@ -133,7 +133,7 @@ function ns.SpecDetection:GetSpecID(isDebug, skipRetry)
         retryCount = retryCount + 1
         if retryCount <= MAX_RETRY then
             if isDebug then 
-                print(string.format("WhackAMole: 天赋数据未就绪，%d秒后重试 (第%d/%d次)", SCAN_DELAY, retryCount, MAX_RETRY))
+                ns.Logger:System(string.format("WhackAMole: 天赋数据未就绪，%d秒后重试 (第%d/%d次)", SCAN_DELAY, retryCount, MAX_RETRY))
             end
             
             -- 使用 C_Timer.After 延迟重试
@@ -149,7 +149,7 @@ function ns.SpecDetection:GetSpecID(isDebug, skipRetry)
             return nil
         else
             if isDebug then 
-                print("WhackAMole: 天赋数据重试失败，已达最大重试次数")
+                ns.Logger:System("WhackAMole: 天赋数据重试失败，已达最大重试次数")
             end
             retryCount = 0  -- 重置计数器
         end
@@ -164,7 +164,7 @@ function ns.SpecDetection:GetSpecID(isDebug, skipRetry)
     if maxPoints <= 10 then 
         local detectedSpec = ns.SpecRegistry and ns.SpecRegistry:Detect(playerClass)
         if detectedSpec then
-             if isDebug then print("WhackAMole Debug: Heuristic detected spec: " .. detectedSpec) end
+             if isDebug then ns.Logger:System("WhackAMole Debug: Heuristic detected spec: " .. detectedSpec) end
             return detectedSpec
         end
     end
@@ -172,11 +172,11 @@ function ns.SpecDetection:GetSpecID(isDebug, skipRetry)
     -- 低等级玩家降级方案（基于 TODO.md 任务 0.3 要求）
     if maxPoints <= 0 then
         if UnitLevel("player") <= 10 then
-            if isDebug then print("WhackAMole Debug: 低等级角色，返回默认专精") end
+            if isDebug then ns.Logger:System("WhackAMole Debug: 低等级角色，返回默认专精") end
             -- 返回第一个专精作为默认值
             return ns.SpecDetection:GetDefaultSpecID(playerClass)
         elseif UnitLevel("player") > 10 then
-            if isDebug then print("WhackAMole Debug: Spec Detection Failed (MaxPoints="..maxPoints..")") end
+            if isDebug then ns.Logger:System("WhackAMole Debug: Spec Detection Failed (MaxPoints="..maxPoints..")") end
             return nil
         end
     end
@@ -262,7 +262,7 @@ function ns.SpecDetection:StartPolling()
         
         -- 检测到变化
         if lastFingerprint and lastFingerprint ~= currentFingerprint then
-            print("|cff00ff00[WhackAMole]|r 检测到天赋变化，重新扫描专精...")
+            ns.Logger:System("|cff00ff00[WhackAMole]|r 检测到天赋变化，重新扫描专精...")
             
             -- 延迟扫描（避免数据未就绪）
             if C_Timer and C_Timer.After then
@@ -292,7 +292,7 @@ end
 --- 专精变化回调（供外部覆盖）
 -- @param newSpecID 新的专精ID
 function ns.SpecDetection:OnSpecChanged(newSpecID)
-    print(string.format("|cff00ff00[WhackAMole]|r 专精变化: %d -> %d", lastSpecID or 0, newSpecID))
+    ns.Logger:System(string.format("|cff00ff00[WhackAMole]|r 专精变化: %d -> %d", lastSpecID or 0, newSpecID))
     
     -- 触发事件通知Core重新加载
     if ns.Core and ns.Core.OnSpecChanged then
