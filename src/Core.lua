@@ -61,6 +61,38 @@ function WhackAMole:OnSpellCastSucceeded(event, unit, _, spellID)
     if ns.State and ns.State.RecordSpellCast then
         ns.State:RecordSpellCast(spellID, name)
     end
+    
+    -- 施法完成，清除施法标志（恢复到战斗节流速度）
+    self.playerIsCasting = false
+    
+    -- 音频反馈（通过回调机制）
+    if ns.Audio and ns.Audio.OnSpellCastSucceeded then
+        ns.Audio:OnSpellCastSucceeded(event, unit, _, spellID)
+    end
+end
+
+function WhackAMole:OnSpellCastStart(event, unit, castGUID, spellID)
+    Lifecycle.OnSpellCastStart(self, event, unit, castGUID, spellID)
+end
+
+function WhackAMole:OnSpellCastChannelStart(event, unit)
+    Lifecycle.OnSpellCastChannelStart(self, event, unit)
+end
+
+function WhackAMole:OnSpellCastStop(event, unit)
+    Lifecycle.OnSpellCastStop(self, event, unit)
+end
+
+function WhackAMole:OnSpellCastFailed(event, unit)
+    Lifecycle.OnSpellCastFailed(self, event, unit)
+end
+
+function WhackAMole:OnSpellCastInterrupted(event, unit)
+    Lifecycle.OnSpellCastInterrupted(self, event, unit)
+end
+
+function WhackAMole:OnSpellCastChannelStop(event, unit)
+    Lifecycle.OnSpellCastChannelStop(self, event, unit)
 end
 
 -- =========================================================================

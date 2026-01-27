@@ -1,0 +1,15 @@
+## Interface: 30300
+## Title: PoC_SpellcastEvents
+## Notes: Validates Spellcast Event Detection with modular scenario system
+
+Logger.lua
+ScenarioRegistry.lua
+UI\DebugTabs\GuideTab.lua
+UI\DebugTabs\LogExportTab.lua
+DebugWindow.lua
+Scenarios\Scenario_AllEvents.lua
+Scenarios\Scenario_NormalCast.lua
+Scenarios\Scenario_CastInterrupted.lua
+Scenarios\Scenario_CastFailed.lua
+Scenarios\Scenario_ChannelComplete.lua
+Core.lua

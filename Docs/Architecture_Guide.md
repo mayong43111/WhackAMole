@@ -69,8 +69,8 @@ graph TD
 
 *   **流程**: `Raw String` $\to$ `Tokenizer` $\to$ `Lua Source Gen` $\to$ `loadstring` $\to$ `Function`
 *   **示例**:
-    *   **输入**: `rage > 80 & target.health_pct < 20`
-    *   **生成的 Lua**: `return state.rage > 80 and state.target.health_pct < 20`
+    *   **输入**: `rage > 80 & target.health.pct < 20`
+    *   **生成的 Lua**: `return state.rage > 80 and state.target.health.pct < 20`
 *   **缓存**: 
     *   解析器内部维护一个 `weak table` 缓存。
     *   如果两个 Profile 目前都使用 `rage > 80`，它们共享同一个编译好的 Lua 函数闭包。

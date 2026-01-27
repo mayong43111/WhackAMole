@@ -137,13 +137,13 @@ end
 
 -- 3. 猝死斩杀 (20%以上血量 - 4T1后8-11%触发率)
 -- 条件：猝死Buff存在 且 目标血量≥20%
-if buff(B_SuddenDeath).up and target.health_pct >= 20 then
+if buff(B_SuddenDeath).up and target.health.pct >= 20 then
     return 3 -- 斩杀
 end
 
 -- 4. 常规斩杀 (20%以下血量 - 需要足够怒气)
 -- 条件：目标血量<20% 且 怒气≥30（避免低效斩杀）
-if target.health_pct < 20 and player.power.rage.current >= 30 then
+if target.health.pct < 20 and player.power.rage.current >= 30 then
     return 3 -- 斩杀
 end
 
@@ -161,13 +161,13 @@ end
 
 -- 7. 猛击 (填充技能 - 2T1后+3%伤害)
 -- 条件：站桩 且 怒气≥20 且 目标血量≥20%（斩杀阶段不用）
-if not player.moving and player.power.rage.current >= 20 and target.health_pct >= 20 then
+if not player.moving and player.power.rage.current >= 20 and target.health.pct >= 20 then
     return 5 -- 猛击
 end
 
--- 8. 英勇打击 (怒气溢出时泄怒)
+-- 8. 英雄打击 (怒气溢出时泄怒)
 -- 条件：怒气≥60 且 目标血量≥20%（不占GCD，替代下次平砍）
-if player.power.rage.current >= 60 and target.health_pct >= 20 then
+if player.power.rage.current >= 60 and target.health.pct >= 20 then
     return 7 -- 英勇打击
 end
 

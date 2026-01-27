@@ -2,7 +2,16 @@
 
 ## 模块概述
 
-**文件**: `src/Engine/State.lua`
+**主文件**: `src/Engine/State.lua`
+
+**子模块结构** (Phase 2 重构):
+- `Config.lua` - 配置常量（GCD阈值、资源类型、回复速率等）
+- `Cache.lua` - 缓存系统（对象池、查询缓存）
+- `Resources.lua` - 资源生命周期管理（创建、初始化、推进）
+- `Init.lua` - 基础结构和兼容性层
+- `AuraTracking.lua` - Buff/Debuff 扫描和查询
+- `StateReset.lua` - 状态重置协调器
+- `StateAdvance.lua` - 虚拟时间推进协调器
 
 State 模块负责构建游戏状态的只读快照（Context），为 APL 条件判断提供一致的数据视图，并支持虚拟时间推进以实现预测功能。
 
@@ -43,473 +52,408 @@ State 模块负责构建游戏状态的只读快照（Context），为 APL 条�
 
 ---
 
+## APL 条件表达式可用参数
+
+> **说明**：完整的参数列表、实现状态和优先级请参见下方的[参数完整列表与实现状态](#参数完整列表与实现状态)表格。
+
+### 参数完整列表与实现状态
+
+| 分类 | 参数 | 描述 | 实现状态 | 优先级 | 备注 |
+|------|------|------|----------|--------|------|
+| **时间** | `now` | 当前时间戳 (GetTime()) | ✅ 已实现 | - | - |
+| | `combat_time` | 战斗时长（秒） | ✅ 已实现 | - | - |
+| **玩家-生命** | `player.health.current` | 当前生命值 | ✅ 已实现 | - | - |
+| | `player.health.max` | 最大生命值 | ✅ 已实现 | - | - |
+| | `player.health.pct` | 生命百分比 | ✅ 已实现 | - | 防护战 Preset 使用 |
+| **玩家-资源** | `player.power.type` | 资源类型 | ℹ️ 未实现 | P2 | - |
+| | `player.power.current` | 当前资源值 | ✅ 已实现 | - | 仅 rage 完整实现 |
+| | `player.power.max` | 最大资源值 | ❌ 未实现 | P2 | 需扩展 player.power 结构 |
+| | `player.power.pct` | 资源百分比 | ❌ 未实现 | P2 | 需扩展 player.power 结构 |
+| | `player.power.regen` | 每秒回复量 | ℹ️ 未实现 | P2 | - |
+| | `rage` | 怒气值 | ✅ 已实现 | - | - |
+| | `mana` | 法力值 | ✅ 已实现 | - | - |
+| | `energy` | 能量值 | ✅ 已实现 | - | - |
+| | `runic_power` | 符文能量 | ✅ 已实现 | - | - |
+| | `mana.pct` | 法力百分比 | ✅ 已实现 | - | 火法 Preset 使用 |
+| | `energy.pct` | 能量百分比 | ✅ 已实现 | - | 通过元表 __index |
+| | `rage.pct` | 怒气百分比 | ✅ 已实现 | - | 通过元表 __index |
+| | `runic_power.pct` | 符能百分比 | ✅ 已实现 | - | 通过元表 __index |
+| **玩家-读条** | `player.casting.spell` | 施法名称 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.spell_id` | 法术 ID | ℹ️ 未实现 | P2 | - |
+| | `player.casting.target` | 施法目标 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.end_time` | 读条结束时间 | ℹ️ 未实现 | P2 | - |
+| | `player.casting.remains` | 读条剩余时间 | ℹ️ 未实现 | P2 | - |
+| **玩家-GCD** | `player.gcd.active` | GCD 是否激活 | ✅ 已实现 | - | - |
+| | `player.gcd.remains` | GCD 剩余时间 | ✅ 已实现 | - | - |
+| **玩家-移动** | `player.moving` | 是否正在移动 | ✅ 已实现 | - | - |
+| **玩家-战斗** | `player.in_combat` | 战斗状态 | ✅ 已实现 | - | - |
+| **目标-存在** | `target.exists` | 目标是否存在 | ✅ 已实现 | - | - |
+| **目标-生命** | `target.health.current` | 当前生命值 | ✅ 已实现 | - | - |
+| | `target.health.max` | 最大生命值 | ✅ 已实现 | - | - |
+| | `target.health.pct` | 生命百分比 | ✅ 已实现 | - | - |
+| **目标-读条** | `target.casting.spell` | 施法名称 | ℹ️ 未实现 | P2 | 打断逻辑需要 |
+| | `target.casting.interruptible` | 是否可打断 | ℹ️ 未实现 | P2 | - |
+| **目标-其他** | `target.time_to_die` | 预计存活时间 | ⚠️ Placeholder | P2 | 固定值 99 |
+| | `target.range` | 目标距离 | ✅ 已实现 | - | 粗略检测 |
+| **Buff** | `buff.NAME.up` | Buff 是否存在 | ✅ 已实现 | - | - |
+| | `buff.NAME.down` | Buff 是否不存在 | ✅ 已实现 | - | - |
+| | `buff.NAME.remains` | Buff 剩余时间 | ✅ 已实现 | - | - |
+| | `buff.NAME.count` | Buff 层数 | ✅ 已实现 | - | - |
+| | `buff.NAME.mine` | 是否玩家施加 | ✅ 已实现 | - | - |
+| | `buff.NAME.react` | 是否可响应/触发 | ✅ 已实现 | - | SimC兼容 |
+| **Debuff** | `debuff.NAME.up` | Debuff 是否存在 | ✅ 已实现 | - | - |
+| | `debuff.NAME.down` | Debuff 是否不存在 | ✅ 已实现 | - | - |
+| | `debuff.NAME.remains` | Debuff 剩余时间 | ✅ 已实现 | - | - |
+| | `debuff.NAME.count` | Debuff 层数 | ✅ 已实现 | - | - |
+| **冷却** | `cooldown.NAME.ready` | 冷却是否就绪 | ✅ 已实现 | - | - |
+| | `cooldown.NAME.remains` | 冷却剩余时间 | ✅ 已实现 | - | - |
+| | `cooldown.NAME.charges` | 技能层数 | ℹ️ 未实现 | P2 | - |
+| **天赋** | `talent.NAME.enabled` | 天赋是否学习 | ℹ️ 未实现 | P2 | - |
+| **职业-符文** | `runes.blood` | 鲜血符文数量 | ❌ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.frost` | 冰霜符文数量 | ❌ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.unholy` | 邪恶符文数量 | ❌ 未实现 | **P0** | 死骑 Preset 使用 |
+| | `runes.death` | 死亡符文数量 | ❌ 未实现 | **P0** | 死骑 Preset 使用 |
+| **职业-连击** | `combo_points` | 连击点数 | ✅ 已实现 | - | 盗贼/德鲁伊 |
+| **战斗环境** | `active_enemies` | 激活敌人数量 | ⚠️ Placeholder | P1 | 固定值 1 |
+
+### 实现状态说明
+
+- **✅ 已实现**: 功能完整可用
+- **⚠️ 部分实现**: 基础功能可用，但需要增强（如 Placeholder、缺少字段等）
+- **❌ 未实现**: 代码中完全未实现（需要新增功能）
+- **ℹ️ 未实现**: 文档定义但代码中未实现（低优先级）
+
+### 优先级说明
+
+- **P0（紧急）**: Preset 中已使用，必须立即实现
+  - `runes.*` (blood/frost/unholy/death) - 死骑 Preset 使用（7处引用）
+  - **状态**: 完全未实现，需要实现 GetRuneCooldown API 调用和符文类型转换机制
+
+- **P1（高优先级）**: 功能完整性
+  - `active_enemies` - 多目标判断（当前固定为1，需实现敌人计数）
+
+- **P2（中优先级）**: 系统完整性
+  - `player.power.max`, `player.power.pct` - 资源系统完善
+  - `player.casting.*` - 玩家施法状态追踪
+
+- **P3（低优先级）**: 增强功能
+  - `target.time_to_die` - 复杂的存活时间算法
+  - `target.casting.*` - 目标施法检测（打断逻辑）
+  - `talent.*` - 天赋检测
+  - `cooldown.NAME.charges` - 多层数技能支持
+  - `player.power.type`, `player.power.regen` - 资源类型和回复速度
+
+---
+
+## 条件表达式操作符
+
+**示例**:
+```lua
+cooldown.combustion.ready           -- 燃烧冷却就绪
+cooldown.mirror_image.remains > 20  -- 镜像冷却剩余时间 > 20 秒
+cooldown.overpower.ready            -- 压制可以使用
+```
+
+#### 7. 天赋状态 (talent.NAME.FIELD)
+
+支持的字段：
+- `talent.NAME.enabled` - 天赋是否学习（返回 boolean）
+
+**逻辑操作符**:
+- `&` - 逻辑与 (AND)
+- `|` - 逻辑或 (OR)
+- `!` - 逻辑非 (NOT)
+
+**比较操作符**:
+- `>` - 大于
+- `<` - 小于
+- `>=` - 大于等于
+- `<=` - 小于等于
+- `=` - 等于（编译为 Lua 的 `==`）
+- `!=` - 不等于（编译为 Lua 的 `~=`）
+
+**分组**:
+- `( )` - 括号用于改变优先级
+
+### 使用示例
+
+```lua
+-- 生命值检查
+"actions+=/shield_wall,if=player.health.pct<20"
+"actions+=/hammer_of_wrath,if=target.health.pct<20"
+
+-- Buff/Debuff 检查
+"actions+=/pyroblast,if=buff.hot_streak.up"
+"actions+=/rend,if=debuff.rend.remains<3&target.time_to_die>6"
+"actions+=/moonfire,if=!debuff.moonfire.up"
+
+-- 冷却检查
+"actions+=/combustion,if=cooldown.combustion.ready"
+"actions+=/overpower"  -- 无条件，等效于 if=cooldown.overpower.ready
+
+-- 复合条件
+"actions+=/pyroblast,if=buff.hot_streak.up&cooldown.combustion.ready"
+"actions+=/execute,if=target.health.pct<20|buff.sudden_death.up"
+"actions+=/savage_roar,if=!buff.savage_roar.up|buff.savage_roar.remains<2"
+
+-- 资源检查
+"actions+=/evocation,if=mana.pct<10"
+"actions+=/heroic_strike,if=rage>=60&target.health.pct>=20"
+"actions+=/tigers_fury,if=energy<30"
+"actions+=/frost_strike,if=runic_power>=40"
+
+-- 移动状态
+"actions+=/fire_blast,if=player.moving"
+"actions+=/slam,if=!player.moving&rage>=20"
+
+-- 符文检查（死亡骑士）
+"actions+=/scourge_strike,if=runes.unholy>=1&runes.frost>=1"
+"actions+=/blood_strike,if=runes.blood>=1"
+
+-- Debuff 检查（DoT 等效于 Debuff）
+"actions+=/icy_touch,if=!debuff.frost_fever.up"
+"actions+=/plague_strike,if=!debuff.blood_plague.up"
+
+-- Buff 响应/触发检查
+"actions+=/death_coil,if=buff.sudden_doom.react"
+
+-- 团队增益检查
+"actions+=/summon_gargoyle,if=buff.potion_of_speed.up|buff.bloodlust.up|buff.heroism.up"
+
+-- 连击点检查（盗贼/德鲁伊）
+"actions+=/rip,if=combo_points>=5&debuff.rake.up"
+"actions+=/ferocious_bite,if=combo_points>=5"
+
+-- 多目标检查
+"actions+=/swipe_cat,if=active_enemies>=2&energy>=45"
+"actions+=/thunder_clap,if=debuff.thunder_clap.down&active_enemies>=2"
+```
+
+---
+
 ## 核心数据结构
 
-### 状态快照 (Context)
+### 状态快照 (Context) 结构
+
+状态快照是一个不可变的数据结构，包含以下主要部分：
 
 ```lua
 context = {
-    -- 时间戳
-    now = 12345.67,           -- GetTime()
-    combat_time = 45.2,       -- 战斗时长
+    now = <timestamp>,          -- 当前时间戳
+    combat_time = <seconds>,    -- 战斗持续时间
     
-    -- 玩家状态
-    player = {
-        health = {
-            current = 25000,
-            max = 30000,
-            pct = 83.3
-        },
-        power = {
-            type = "MANA",    -- MANA/RAGE/ENERGY/RUNIC_POWER
-            current = 8500,
-            max = 10000,
-            pct = 85.0,
-            regen = 250       -- 每秒回复
-        },
-        casting = {
-            spell = "Fireball",
-            spell_id = 133,
-            target = "target",
-            end_time = 12348.17,
-            remains = 2.5
-        },
-        gcd = {
-            active = false,
-            remains = 0
-        }
+    player = {                  -- 玩家状态
+        health = {current, max, pct},
+        power = {type, current, max, pct, regen},
+        casting = {spell, spell_id, end_time, remains},
+        gcd = {active, remains},
+        moving = <boolean>,
+        in_combat = <boolean>
     },
     
-    -- 目标状态
-    target = {
-        exists = true,
-        health = {
-            current = 150000,
-            max = 500000,
-            pct = 30.0
-        },
-        casting = {
-            spell = "Shadowbolt",
-            interruptible = true
-        }
+    target = {                  -- 目标状态
+        exists = <boolean>,
+        health = {current, max, pct},
+        casting = {spell, interruptible},
+        range = <number>
     },
     
-    -- 元表字段（动态查询）
-    buff = <metatable>,      -- buff.hot_streak.up
-    debuff = <metatable>,    -- debuff.flame_shock.remains
-    cooldown = <metatable>,  -- cooldown.combustion.ready
-    talent = <metatable>     -- talent.improved_scorch.enabled
+    -- 动态查询字段（通过元表实现）
+    buff = <metatable>,         -- 如 buff.hot_streak.up
+    debuff = <metatable>,       -- 如 debuff.rend.remains
+    cooldown = <metatable>,     -- 如 cooldown.combustion.ready
+    talent = <metatable>,       -- 如 talent.improved_scorch.enabled
+    
+    -- 职业特定字段
+    rage = <resource_object>,   -- 怒气（战士）
+    energy = <resource_object>, -- 能量（盗贼/德鲁伊）
+    combo_points = <number>,    -- 连击点（盗贼/德鲁伊）
+    runic_power = <resource_object>, -- 符文能量（死亡骑士）
+    holy_power = <number>       -- 圣能（圣骑士，泰坦服）
+    -- 注意: runes (blood/frost/unholy/death) 尚未实现
 }
 ```
 
-### 查询缓存
+---
 
-```lua
-query_cache = {
-    -- 缓存键格式: "type:name:field"
-    ["buff:hot_streak:up"] = true,
-    ["cooldown:combustion:remains"] = 15.3,
-    ["target:health:pct"] = 42.5,
-    -- ...
-}
+## 设计原理
 
-cache_stats = {
-    hits = 1832,
-    misses = 456,
-    total = 2288,
-    hitRate = 0.801
-}
+### 1. 元表动态查询机制
+
+**设计思路**：
+- Buff/Debuff/Cooldown 查询采用**延迟计算**策略
+- 只有当 APL 条件实际访问某个字段时才执行 WoW API 查询
+- 通过 Lua 元表的 `__index` 元方法实现两层嵌套查询
+
+**查询链路**：
+```
+APL 条件: buff.hot_streak.up
+         ↓
+State Context 元表触发
+         ↓
+创建 Buff 代理对象 (hot_streak)
+         ↓
+访问字段 'up' 触发第二层元表
+         ↓
+检查查询缓存
+         ↓
+缓存未命中 → 执行 UnitBuff() 扫描
+         ↓
+返回结果并缓存
 ```
 
-### 对象池
+**关键优势**：
+- 避免每帧扫描所有 Buff（WotLK 有 40 个槽位）
+- 条件中未使用的 Buff 不会触发查询
+- 自然支持任意 Buff 名称（无需预定义）
 
-```lua
-buffCachePool = {
-    {name = "Hot Streak", ...},  -- 可复用对象
-    {name = "Pyroblast!", ...},
-    -- ...
-}
+**元表结构**：
+- 第一层元表：`context.buff[buffName]` → 返回 Buff 代理对象
+- 第二层元表：`buffProxy[field]` → 执行实际查询并缓存
 
--- 使用模式：
-local buff = GetFromPool(buffCachePool)
-buff.name = "Hot Streak"
-buff.expires = GetTime() + 10
--- ... 使用完毕
-ReleaseToPool(buffCachePool, buff)
-```
+### 2. 查询缓存系统
+
+**设计思路**：
+- 单帧内重复查询同一字段会命中缓存（如多个条件都检查 `buff.hot_streak.up`）
+- 缓存粒度为单帧，每帧结束自动失效
+- 缓存键格式：`"type:name:field"`（如 `"buff:hot_streak:up"`）
+
+**缓存策略**：
+| 场景 | 缓存有效性 | 失效机制 |
+|------|-----------|----------|
+| 同一帧内重复查询 | ✅ 命中缓存 | - |
+| 下一帧查询 | ❌ 已失效 | 帧开始时清空 |
+| 虚拟时间推进后 | ❌ 需重新计算 | advance() 后清空 |
+
+**典型命中率**：75-80%（Preset APL 中大量重复条件查询）
+
+### 3. 对象池机制
+
+**设计目标**：
+- 减少 Buff/Debuff 查询结果对象的频繁创建/销毁
+- 降低 Lua GC 压力（WoW 客户端单线程，GC 暂停影响帧率）
+
+**工作原理**：
+- 预分配一批可复用的表对象
+- 使用时从池中取出，使用完毕后清空并归还
+- 池为空时动态创建新对象
+
+**适用场景**：
+- Aura 查询结果缓存
+- 临时计算数据存储
 
 ---
 
 ## 状态快照构建流程
 
-### BuildContext() 主流程
+### BuildContext() 主要步骤
 
-```lua
-function State:BuildContext()
-    local ctx = {}
-    
-    -- 1. 时间戳
-    ctx.now = GetTime()
-    ctx.combat_time = self:GetCombatTime()
-    
-    -- 2. 玩家状态
-    ctx.player = {
-        health = self:GetPlayerHealth(),
-        power = self:GetPlayerPower(),
-        casting = self:GetPlayerCasting(),
-        gcd = self:GetGCD()
-    }
-    
-    -- 3. 目标状态
-    ctx.target = {
-        exists = UnitExists("target"),
-        health = self:GetTargetHealth(),
-        casting = self:GetTargetCasting()
-    }
-    
-    -- 4. 设置元表（动态查询）
-    setmetatable(ctx, {
-        __index = {
-            buff = self:CreateBuffAccessor(),
-            debuff = self:CreateDebuffAccessor(),
-            cooldown = self:CreateCooldownAccessor(),
-            talent = self:CreateTalentAccessor()
-        }
-    })
-    
-    return ctx
-end
-```
+1. **创建基础快照对象**
+   - 获取当前时间戳（`GetTime()`）
+   - 计算战斗时长（`now - combat_start_time`）
+
+2. **查询玩家静态状态**
+   - 生命值：`UnitHealth("player")` / `UnitHealthMax("player")`
+   - 资源：`UnitPower("player", powerType)` / `UnitPowerMax("player", powerType)`
+   - GCD：`GetSpellCooldown(61304)` 检测 1.5 秒全局冷却
+   - 移动状态：通过事件监听器维护标志位
+
+3. **查询目标静态状态**
+   - 存在性：`UnitExists("target")`
+   - 生命值：`UnitHealth("target")` / `UnitHealthMax("target")`
+   - 距离：通过技能范围 API 粗略判断
+
+4. **设置动态查询元表**
+   - 为 `buff`, `debuff`, `cooldown`, `talent` 字段设置元表
+   - 元表的 `__index` 方法返回代理对象
+   - 代理对象的 `__index` 方法执行实际查询
+
+5. **初始化职业资源**
+   - 通用资源：mana（法力）
+   - 战士/德鲁伊熊形态：rage（怒气）
+   - 盗贼/德鲁伊猫形态：energy（能量）、combo_points（连击点）
+   - 死亡骑士：runic_power（符文能量）
+   - 圣骑士（泰坦服）：holy_power（圣能）
+   - **未实现**：死亡骑士符文槽位（runes.blood/frost/unholy/death）
 
 ---
 
-## 元表动态查询机制
-
-### Buff 访问器
-
-```lua
-function CreateBuffAccessor()
-    return setmetatable({}, {
-        __index = function(_, buffName)
-            -- 返回 Buff 对象
-            return setmetatable({
-                _name = buffName
-            }, {
-                __index = function(buff, field)
-                    -- 构建缓存键
-                    local cacheKey = "buff:" .. buffName .. ":" .. field
-                    
-                    -- 查询缓存
-                    if query_cache[cacheKey] ~= nil then
-                        cache_stats.hits = cache_stats.hits + 1
-                        return query_cache[cacheKey]
-                    end
-                    
-                    -- 缓存未命中，执行实际查询
-                    cache_stats.misses = cache_stats.misses + 1
-                    local result = QueryBuff(buffName, field)
-                    query_cache[cacheKey] = result
-                    
-                    return result
-                end
-            })
-        end
-    })
-end
-```
-
-### Buff 查询实现
-
-```lua
-function QueryBuff(buffName, field)
-    -- 扫描玩家 Buff 槽位
-    for i = 1, MAX_AURA_SLOTS do
-        local name, _, count, _, duration, expirationTime, unitCaster = 
-            UnitBuff("player", i)
-        
-        if not name then break end
-        
-        -- 名称匹配
-        if name:lower() == buffName:lower() then
-            -- 根据字段返回值
-            if field == "up" then
-                return true
-            elseif field == "down" then
-                return false
-            elseif field == "remains" then
-                if expirationTime == 0 then
-                    return 9999  -- 永久 Buff
-                else
-                    return math.max(0, expirationTime - GetTime())
-                end
-            elseif field == "count" or field == "stacks" then
-                return count or 1
-            elseif field == "mine" then
-                return unitCaster == "player"
-            end
-        end
-    end
-    
-    -- 未找到 Buff
-    if field == "up" then
-        return false
-    elseif field == "down" then
-        return true
-    elseif field == "remains" then
-        return 0
-    elseif field == "count" or field == "stacks" then
-        return 0
-    end
-end
-```
-
-### Cooldown 访问器
-
-```lua
-function CreateCooldownAccessor()
-    return setmetatable({}, {
-        __index = function(_, spellName)
-            return setmetatable({
-                _name = spellName
-            }, {
-                __index = function(cd, field)
-                    local cacheKey = "cooldown:" .. spellName .. ":" .. field
-                    
-                    if query_cache[cacheKey] ~= nil then
-                        cache_stats.hits = cache_stats.hits + 1
-                        return query_cache[cacheKey]
-                    end
-                    
-                    cache_stats.misses = cache_stats.misses + 1
-                    local result = QueryCooldown(spellName, field)
-                    query_cache[cacheKey] = result
-                    
-                    return result
-                end
-            })
-        end
-    })
-end
-```
-
-### Cooldown 查询实现
-
-```lua
-function QueryCooldown(spellName, field)
-    -- 获取 SpellID
-    local spellID = ns.ActionMap:GetSpellID(spellName)
-    if not spellID then return nil end
-    
-    -- 查询冷却
-    local start, duration, enabled = GetSpellCooldown(spellID)
-    
-    -- 过滤 GCD（duration <= 1.5 秒视为 GCD，不是真实 CD）
-    if duration <= GCD_THRESHOLD then
-        if field == "ready" then
-            return true
-        elseif field == "remains" then
-            return 0
-        end
-    end
-    
-    -- 计算剩余时间
-    local remains = 0
-    if start > 0 and duration > 0 then
-        remains = math.max(0, start + duration - GetTime())
-    end
-    
-    if field == "ready" then
-        return remains == 0
-    elseif field == "remains" then
-        return remains
-    elseif field == "charges" then
-        return GetSpellCharges(spellID) or 1
-    end
-end
-```
-
----
-
-## 查询缓存系统
-
-### 缓存策略
-
-- **粒度**：帧级缓存（每帧构建一次 Context，期间缓存有效）
-- **失效**：帧结束调用 `ClearQueryCache()` 清空
-- **键格式**：`"type:name:field"`（例如 `"buff:hot_streak:up"`）
-
-### 缓存管理
-
-```lua
---- 清空查询缓存（每帧调用）
-function State:ClearQueryCache()
-    wipe(query_cache)
-end
-
---- 获取缓存统计
-function State:GetCacheStats()
-    cache_stats.total = cache_stats.hits + cache_stats.misses
-    
-    if cache_stats.total > 0 then
-        cache_stats.hitRate = cache_stats.hits / cache_stats.total
-    else
-        cache_stats.hitRate = 0
-    end
-    
-    return cache_stats
-end
-
---- 重置缓存统计
-function State:ResetCacheStats()
-    cache_stats.hits = 0
-    cache_stats.misses = 0
-    cache_stats.total = 0
-    cache_stats.hitRate = 0
-end
-```
-
----
-
-## 对象池机制
+## 虚拟时间推进机制
 
 ### 设计目标
-- 减少频繁创建/销毁临时对象
-- 降低 GC 压力
-- 提升性能
+- 在**不改变真实游戏状态**的前提下，模拟未来某个时间点的状态
+- 用于"下一步最优动作预测"功能
 
-### 池管理 API
+### advance(seconds) 推进逻辑
 
-```lua
---- 从池中获取对象
--- @param pool 对象池
--- @return table 可重用的对象
-function GetFromPool(pool)
-    return table.remove(pool) or {}
-end
+**1. 时间戳推进**
+- `now` 增加指定秒数
+- `combat_time` 相应增加
 
---- 释放对象到池
--- @param pool 对象池
--- @param obj 要释放的对象
-function ReleaseToPool(pool, obj)
-    if obj then
-        wipe(obj)  -- 清空内容
-        table.insert(pool, obj)
-    end
-end
+**2. GCD 推进**
+- GCD 剩余时间递减
+- 剩余时间归零时，`gcd.active` 置为 `false`
+
+**3. 资源自然变化**
+| 资源类型 | 变化规则 |
+|---------|---------|
+| Energy（能量） | 每秒回复 10 点（受天赋影响） |
+| Runic Power（符能） | 每秒衰减 10 点（自然流失） |
+| Rage（怒气） | 战斗中自然衰减，脱战快速清空 |
+| Mana（法力） | 根据精神属性计算回复速率 |
+
+**4. Buff/Debuff 时间衰减**
+- 所有 Aura 的 `remains` 字段递减
+- 剩余时间归零时，标记为 `down` 状态
+
+**5. 读条状态更新**
+- 玩家/目标读条的 `remains` 递减
+- 读条完成时清除施法信息
+
+### 使用场景
+
+**Scenario 1：预测 GCD 后的资源状态**
+```
+当前：能量 40，GCD 剩余 0.8 秒
+推进 0.8 秒后：能量 48（回复 8 点），GCD 结束
 ```
 
-### 使用示例
-
-```lua
--- 获取缓存对象
-local buffResult = GetFromPool(buffCachePool)
-buffResult.name = "Hot Streak"
-buffResult.expires = GetTime() + 10
-buffResult.stacks = 1
-
--- ... 使用完毕后释放
-ReleaseToPool(buffCachePool, buffResult)
+**Scenario 2：判断 Buff 是否会过期**
 ```
-
----
-
-## 虚拟时间推进
-
-### 设计目标
-- 在不改变真实游戏状态的前提下，模拟未来状态
-- 用于"下一步预测"功能
-
-### advance(seconds) 实现
-
-```lua
-function State:advance(seconds)
-    -- 1. 推进时间戳
-    self.now = self.now + seconds
-    self.combat_time = self.combat_time + seconds
-    
-    -- 2. 推进 GCD
-    if self.player.gcd.active then
-        self.player.gcd.remains = math.max(0, 
-            self.player.gcd.remains - seconds)
-        
-        if self.player.gcd.remains == 0 then
-            self.player.gcd.active = false
-        end
-    end
-    
-    -- 3. 资源自然回复
-    if self.player.power.type == "ENERGY" then
-        local regen = 10  -- 能量每秒回复 10 点
-        self.player.power.current = math.min(
-            self.player.power.max,
-            self.player.power.current + regen * seconds
-        )
-    elseif self.player.power.type == "RUNIC_POWER" then
-        -- 符文能量每秒衰减 10 点
-        self.player.power.current = math.max(0,
-            self.player.power.current - 10 * seconds
-        )
-    end
-    
-    -- 4. Buff/Debuff 剩余时间衰减
-    for buffName, buffData in pairs(buff_cache) do
-        if buffData.expires > 0 then
-            buffData.remains = math.max(0, 
-                buffData.expires - self.now)
-            
-            if buffData.remains == 0 then
-                buffData.up = false
-                buffData.down = true
-            end
-        end
-    end
-    
-    -- 5. 读条完成
-    if self.player.casting.end_time > 0 then
-        self.player.casting.remains = math.max(0,
-            self.player.casting.end_time - self.now)
-        
-        if self.player.casting.remains == 0 then
-            self.player.casting.spell = nil
-            self.player.casting.spell_id = nil
-        end
-    end
-end
+当前：Hot Streak 剩余 9 秒，下一次施法耗时 2 秒
+推进 2 秒后：Hot Streak 剩余 7 秒（仍然存在）
 ```
 
 ---
 
-## 重置机制
+## 状态重置机制
 
-### 双模式重置
+### 双模式设计
 
-```lua
---- 重置状态（支持完全重置或部分重置）
--- @param full boolean 是否完全重置
-function State:reset(full)
-    if full then
-        -- 完全重置：清空所有缓存
-        wipe(buff_cache)
-        wipe(debuff_cache)
-        wipe(query_cache)
-        
-        -- 清空统计（可选）
-        -- self:ResetCacheStats()
-    else
-        -- 轻量级重置：仅更新时间戳和 GCD
-        self.now = GetTime()
-        self.player.gcd = self:GetGCD()
-    end
-    
-    -- 清空查询缓存（必须）
-    self:ClearQueryCache()
-end
-```
+**完全重置 (`reset(true)`)**
+- 触发时机：进入战斗、脱离战斗、切换 Preset
+- 清空内容：所有缓存、Buff/Debuff 数据、统计信息
+- 耗时：~0.3ms
 
-### 重置时机
+**轻量级重置 (`reset(false)`)**
+- 触发时机：每帧开始（高频调用，每秒 60-100 次）
+- 清空内容：仅查询缓存
+- 耗时：~0.08ms
 
-- **完全重置**：配置切换、进入战斗、脱离战斗
-- **部分重置**：每帧开始（高频调用）
+### 重置流程对比
+
+| 操作 | 完全重置 | 轻量级重置 |
+|------|---------|-----------|
+| 清空查询缓存 | ✅ | ✅ |
+| 清空 Buff 缓存 | ✅ | ❌ |
+| 重置统计数据 | ✅ | ❌ |
+| 重置时间戳 | ✅ | ✅ |
+| 刷新 GCD | ✅ | ✅ |
+
+**设计权衡**：
+- 高频场景使用轻量级重置，避免性能损耗
+- Buff 数据虽然未清空，但查询时会验证过期状态
+- 查询缓存必须每帧清空，否则会返回过期数据
 
 ---
 

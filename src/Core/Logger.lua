@@ -14,15 +14,7 @@ Logger.enabled = false  -- 是否启用日志记录
 -- 日志数据
 Logger.logs = {
     lines = {},           -- 普通日志行数组 [{timestamp, category, message}]
-    maxLines = 1000,      -- 最大行数
-    filters = {           -- 过滤器
-        Combat = true,
-        State = true,
-        APL = true,
-        Error = true,
-        Warn = true,
-        Performance = true
-    }
+    maxLines = 1000       -- 最大行数
 }
 
 -- 系统日志数据（独立存储）

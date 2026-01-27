@@ -13,8 +13,14 @@ ns.CoreConfig = Config
 -- 配置常量
 -- =========================================================================
 
-Config.UPDATE_INTERVAL = 0.05  -- 主循环更新间隔（50ms = 20 FPS）
+-- 智能节流配置：根据场景动态调整更新频率
+Config.UPDATE_INTERVAL_CASTING = 0.03   -- 施法中：30ms（33 FPS）- 预测更新更快
+Config.UPDATE_INTERVAL_COMBAT = 0.05    -- 战斗中：50ms（20 FPS）- 快速响应
+Config.UPDATE_INTERVAL_IDLE = 0.2       -- 非战斗：200ms（5 FPS）- 节省性能
 Config.THROTTLE_INTERVAL = 0.016  -- 事件节流间隔（16ms ≈ 60 FPS）
+
+-- GCD预测提前量：让预测系统提前计算下一个动作
+Config.GCD_ANTICIPATION = 0.5  -- 当GCD剩余≤0.5秒时，认为GCD已结束（提前0.5秒预测）
 
 -- 优先级事件列表（立即处理，不节流）
 Config.PRIORITY_EVENTS = {

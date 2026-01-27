@@ -159,12 +159,7 @@ function Audio:Initialize()
         db.global.audio.volume = db.global.audio.volume or 1.0
     end
     
-    -- Register Event listener for cast success to reset throttle
-    if ns.WhackAMole then
-        ns.WhackAMole:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(...)
-            Audio:OnSpellCastSucceeded(...)
-        end)
-    end
+    -- 注意：不再在这里注册事件，通过 Core.lua 的 OnSpellCastSucceeded 回调
 end
 
 -- Get last played action (for debugging)

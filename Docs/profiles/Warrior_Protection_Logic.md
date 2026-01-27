@@ -72,11 +72,11 @@
 ```lua
 -- === 生存优先（血量阈值触发）===
 
-"actions+=/shield_wall,if=player.health_pct<20",
+"actions+=/shield_wall,if=player.health.pct<20",
   -- 盾墙：血量<20%终极保命
   -- 理由：60%减伤持续12秒，确保不被秒杀
   
-"actions+=/last_stand,if=player.health_pct<35",
+"actions+=/last_stand,if=player.health.pct<35",
   -- 破釜沉舟：血量<35%增加生命值上限
   -- 理由：+30%最大生命值持续20秒，给治疗争取时间
 
@@ -130,7 +130,7 @@
 ```
 
 **关键条件说明**：
-- `player.health_pct<20/35`: 血量百分比阈值 ✅
+- `player.health.pct<20/35`: 血量百分比阈值 ✅
 - `cooldown.shield_block.ready`: CD就绪检测 ✅
 - `target.is_casting`: 目标正在施法 ❌ **当前不支持**
 - `!debuff.thunder_clap.up`: Debuff不存在 ✅

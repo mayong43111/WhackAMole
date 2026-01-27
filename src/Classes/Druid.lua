@@ -1,5 +1,5 @@
 -- Classes/Druid.lua
--- Druid class definition with spell database and spec detection
+-- Druid class definition with spec detection
 local _, ns = ...
 
 -- 初始化职业数据空间
@@ -20,86 +20,46 @@ ns.SpecRegistry:Register("DRUID", function()
     return nil
 end)
 
--- Druid Spell Database
-local druidSpells = {
-    -- ==================== Balance (平衡) ====================
-    [48461]  = { key = "Wrath",           sound = "Wrath.ogg" },
-    [48465]  = { key = "Starfire",        sound = "Starfire.ogg" },
-    [48463]  = { key = "Moonfire",        sound = "Moonfire.ogg" },
-    [48468]  = { key = "InsectSwarm",     sound = "InsectSwarm.ogg" },
-    [53201]  = { key = "Starfall",        sound = "Starfall.ogg" },
-    [33831]  = { key = "ForceOfNature",   sound = "ForceOfNature.ogg" },
-    [61384]  = { key = "Typhoon",         sound = "Typhoon.ogg" },
-    [48467]  = { key = "Hurricane",       sound = "Hurricane.ogg" },
-    [770]    = { key = "FaerieFire",      sound = "FaerieFire.ogg" },
-    [24858]  = { key = "MoonkinForm",     sound = "MoonkinForm.ogg" },
-    
-    -- ==================== Feral (野性战斗) ====================
-    [48566]  = { key = "MangleCat",       sound = "MangleCat.ogg" },
-    [48574]  = { key = "Rake",            sound = "Rake.ogg" },
-    [49800]  = { key = "Rip",             sound = "Rip.ogg" },
-    [48577]  = { key = "FerociousBite",   sound = "FerociousBite.ogg" },
-    [48572]  = { key = "Shred",           sound = "Shred.ogg" },
-    [52610]  = { key = "SavageRoar",      sound = "SavageRoar.ogg" },
-    [62078]  = { key = "SwipeCat",        sound = "SwipeCat.ogg" },
-    [50334]  = { key = "Berserk",         sound = "Berserk.ogg" },
-    [50213]  = { key = "TigersFury",      sound = "TigersFury.ogg" },
-    [48480]  = { key = "Maul",            sound = "Maul.ogg" },
-    [48562]  = { key = "SwipeBear",       sound = "SwipeBear.ogg" },
-    [48564]  = { key = "MangleBear",      sound = "MangleBear.ogg" },
-    [768]    = { key = "CatForm",         sound = "CatForm.ogg" },
-    [5487]   = { key = "BearForm",        sound = "BearForm.ogg" },
-    [9634]   = { key = "DireBearForm",    sound = "DireBearForm.ogg" },
-    
-    -- ==================== Restoration (恢复) ====================
-    [48441]  = { key = "Rejuvenation",    sound = "Rejuvenation.ogg" },
-    [48443]  = { key = "Regrowth",        sound = "Regrowth.ogg" },
-    [50464]  = { key = "Nourish",         sound = "Nourish.ogg" },
-    [48378]  = { key = "HealingTouch",    sound = "HealingTouch.ogg" },
-    [53251]  = { key = "WildGrowth",      sound = "WildGrowth.ogg" },
-    [18562]  = { key = "Swiftmend",       sound = "Swiftmend.ogg" },
-    [48447]  = { key = "Tranquility",     sound = "Tranquility.ogg" },
-    [33891]  = { key = "TreeOfLife",      sound = "TreeOfLife.ogg" },
-    [22812]  = { key = "Barkskin",        sound = "Barkskin.ogg" },
-    [29166]  = { key = "Innervate",       sound = "Innervate.ogg" },
-    
-    -- ==================== 通用技能 ====================
-    [48469]  = { key = "MarkOfTheWild",   sound = "MarkOfTheWild.ogg" },
-    [53307]  = { key = "Thorns",          sound = "Thorns.ogg" },
-    [48477]  = { key = "Rebirth",         sound = "Rebirth.ogg" },
-}
-
+-- 专精配置
 ns.Classes.DRUID[102] = {  -- Balance
     name = "平衡德鲁伊",
-    spells = druidSpells,
 }
 
 ns.Classes.DRUID[103] = {  -- Feral
     name = "野性德鲁伊",
-    spells = druidSpells,
 }
 
 ns.Classes.DRUID[105] = {  -- Restoration
     name = "恢复德鲁伊",
-    spells = druidSpells,
 }
 
--- 手动注册动作映射，防止自动生成逻辑失效（兼容旧格式）
-if ns.ActionMap then
-    local function toSnakeCase(str)
-        local snake = str:gsub("(%u)", "_%1")
-        if snake:sub(1,1) == "_" then snake = snake:sub(2) end
-        return snake:lower()
-    end
+-- =========================================================================
+-- 德鲁伊特殊效果模拟（扩展点）
+-- =========================================================================
 
-    for id, data in pairs(druidSpells) do
-        if data.key then
-            -- 1. 注册全小写格式 (InsectSwarm -> insectswarm)
-            ns.ActionMap[string.lower(data.key)] = id
-            
-            -- 2. 注册蛇形命名格式 (InsectSwarm -> insect_swarm)
-            local snakeKey = toSnakeCase(data.key)
-            ns.ActionMap[snakeKey] = id
+--- 模拟德鲁伊特殊效果（形态切换等复杂机制）
+-- @param action SimC action名称
+-- @param state 虚拟状态对象
+function ns.Classes.DRUID:SimulateSpecialEffect(action, state)
+    -- 形态切换（特殊机制）
+    if action == "cat_form" then
+        -- 切换到猫形态
+        if state.ChangeForm then
+            state:ChangeForm("cat")
+        end
+        -- 法力转能量（简化处理：假设转换完成）
+        if state.ConvertResource then
+            state:ConvertResource("mana", "energy")
+        end
+        
+    elseif action == "bear_form" then
+        -- 切换到熊形态
+        if state.ChangeForm then
+            state:ChangeForm("bear")
+        end
+        -- 法力转怒气（简化处理：假设转换完成）
+        if state.ConvertResource then
+            state:ConvertResource("mana", "rage")
         end
     end
 end

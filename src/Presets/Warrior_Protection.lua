@@ -27,9 +27,9 @@ ns.ProfileManager:RegisterPreset({
     
     apl = {
         -- === 生存优先（血量阈值触发）===
-        "actions+=/shield_wall,if=player.health_pct<20",              -- 盾墙：血量<20%终极保命（60%减伤12秒）
-        "actions+=/last_stand,if=player.health_pct<40",               -- 破釜沉舟：血量<40%先扩血量池（+30%最大生命20秒）
-        "actions+=/enraged_regeneration,if=player.health_pct<35",     -- 狂怒回复：血量<35%治疗+免死（在扩大血量池上治疗更高效）
+        "actions+=/shield_wall,if=player.health.pct<20",              -- 盾墙：血量<20%终极保命（60%减伤12秒）
+        "actions+=/last_stand,if=player.health.pct<40",               -- 破釜沉舟：血量<40%先扩血量池（+30%最大生命20秒）
+        "actions+=/enraged_regeneration,if=player.health.pct<35",     -- 狂怒回复：血量<35%治疗+免死（在扩大血量池上治疗更高效）
         
         -- === 主动防御 ===
         "actions+=/shield_block,if=cooldown.shield_block.ready",      -- 盾牌格挡：CD好就用（100%格挡10秒，触发复仇）

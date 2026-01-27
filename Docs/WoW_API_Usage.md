@@ -26,6 +26,25 @@
 | `UnitPower()` | 资源值获取 | PoC_UnitState | ✅ 已验证 |
 | `UnitExists()` | 单位存在性检查 | PoC_UnitState | ✅ 已验证 |
 
+### 已验证的事件
+
+以下游戏事件已通过 PoC 验证工具验证其触发机制和参数：
+
+| 事件 | 说明 | 验证工具 | 状态 |
+| :--- | :--- | :--- | :--- |
+| `ADDON_LOADED` | 插件加载完成 | PoC_SpellcastEvents | ✅ 已验证 |
+| `PLAYER_LOGIN` | 玩家登录完成 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_START` | 施法开始事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_STOP` | 施法结束事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_SUCCEEDED` | 施法成功事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_FAILED` | 施法失败事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_INTERRUPTED` | 施法打断事件 ⚠️ | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_CHANNEL_START` | 引导开始事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_CHANNEL_UPDATE` | 引导更新事件 | PoC_SpellcastEvents | ✅ 已验证 |
+| `UNIT_SPELLCAST_CHANNEL_STOP` | 引导结束事件 | PoC_SpellcastEvents | ✅ 已验证 |
+
+> ⚠️ **重要**: `UNIT_SPELLCAST_INTERRUPTED` 事件在 WoW 3.3.5 客户端中会为同一次打断触发**4次**。实际应用需要使用 castGUID + 时间窗口进行去重。
+
 ### 使用中的其他 API
 
 以下 API 在 WhackAMole 中使用，但暂未通过专门的 PoC 验证：
@@ -228,6 +247,47 @@ end
 - 显示施法者标签（玩家/宠物/其他单位）
 - 格式化时间显示（剩余/总时长）
 - 处理 WotLK 私服 Debuff 返回参数偏移
+
+### 7.5 PoC_SpellcastEvents - 施法事件检测验证
+
+**验证目标：** 施法事件系列（8个事件）+ `UnitCastingInfo`、`UnitChannelInfo` API
+
+**验证内容：**
+- 施法事件触发顺序和参数完整性
+- UnitCastingInfo/UnitChannelInfo API 延迟问题
+- 施法时间计算准确性
+- 事件完整性（START → SUCCEEDED/STOP/FAILED/INTERRUPTED 链路）
+
+**监听的10个事件：**
+1. `ADDON_LOADED` - 插件加载完成
+2. `PLAYER_LOGIN` - 玩家登录完成
+3. `UNIT_SPELLCAST_START` - 普通施法开始
+4. `UNIT_SPELLCAST_STOP` - 施法正常结束
+5. `UNIT_SPELLCAST_SUCCEEDED` - 施法成功完成
+6. `UNIT_SPELLCAST_FAILED` - 施法失败
+7. `UNIT_SPELLCAST_INTERRUPTED` - 施法被打断（⚠️ 单次打断触发4次）
+8. `UNIT_SPELLCAST_CHANNEL_START` - 引导施法开始
+9. `UNIT_SPELLCAST_CHANNEL_UPDATE` - 引导施法更新
+10. `UNIT_SPELLCAST_CHANNEL_STOP` - 引导施法结束
+
+**测试场景：**
+- **场景1：事件验证** - 监听所有10个事件，实时显示已触发/待触发列表
+- **场景2：普通施法** - 验证带施法时间的技能（如火球术）
+- **场景3：施法打断** - 验证被怪物打断施法的检测
+- **场景4：施法失败** - 验证超出射程/移动中施法导致失败
+- **场景5：引导完成** - 验证引导技能完整流程（如暴风雪）
+
+**关键发现：**
+1. **UnitCastingInfo 延迟**：`UNIT_SPELLCAST_START` 触发后，`UnitCastingInfo()` 可能返回 nil（延迟 30-100ms）
+2. **事件顺序**：正常流程 START → SUCCEEDED → STOP，SUCCEEDED 和 STOP 几乎同时触发（< 10ms）
+3. **引导施法特殊性**：只有 CHANNEL_START 和 STOP，没有 SUCCEEDED 事件
+4. **INTERRUPTED 多次触发**：WoW 3.3.5 客户端在单次打断时会触发4次事件（第一次单独，随后连续3次，间隔约0.1秒），实际应用需要使用 castGUID + 时间窗口去重
+5. **UnitChannelInfo nil 问题**：返回的 endTimeMs 可能为 nil，需要进行 nil 检查
+
+**配置参数：**
+- 静默运行：日志仅保存在内存（最多1000条），不输出到聊天窗口
+- 导出命令：`/pocspell export` 或 `/pse export`
+- 模块化架构：Logger、DebugWindow、ScenarioRegistry 独立模块
 
 ---
 
