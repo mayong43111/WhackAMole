@@ -89,9 +89,19 @@ local function ResetCooldowns(state)
     local gcdStart, gcdDuration, gcdEnabled = GetSpellCooldown(61304)
     -- 判断 GCD 是否激活：开始时间 > 0 且持续时间在阈值内（排除长 CD）
     if gcdStart and gcdDuration and gcdStart > 0 and gcdDuration > 0 and gcdDuration <= GCD_THRESHOLD then
-        state.gcd.active = true
         -- 计算 GCD 剩余时间（秒），确保不为负数
-        state.gcd.remains = math.max(0, (gcdStart + gcdDuration) - state.now)
+        local gcdRemains = math.max(0, (gcdStart + gcdDuration) - state.now)
+        
+        -- 应用GCD提前量：当剩余时间≤0.5秒时，认为GCD已结束
+        local gcdAnticipation = (ns.CoreConfig and ns.CoreConfig.GCD_ANTICIPATION) or 0.5
+        if gcdRemains <= gcdAnticipation then
+            state.gcd.active = false
+            state.gcd.remains = 0
+        else
+            state.gcd.active = true
+            -- 减去提前量，让预测系统提前计算
+            state.gcd.remains = gcdRemains - gcdAnticipation
+        end
     else
         state.gcd.active = false
         state.gcd.remains = 0

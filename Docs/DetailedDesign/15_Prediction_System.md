@@ -424,7 +424,42 @@ end
 -- Config.lua
 UPDATE_INTERVAL_CASTING = 0.03   -- 施法中更新间隔（30ms）
 PREDICTION_MAX_CAST_TIME = 3.0   -- 最大预测施法时长（3秒）
+GCD_ANTICIPATION = 0.5           -- GCD提前量（0.5秒）
 ```
+
+### GCD 提前预测机制
+
+**核心优化**：当 GCD 剩余时间 ≤ 0.5秒时，预测系统认为 GCD 已结束，提前计算下一个主预测。
+
+**实现逻辑**：
+```lua
+-- StateReset.lua
+local gcdRemains = (gcdStart + gcdDuration) - currentTime
+if gcdRemains <= 0.5 then
+    -- GCD剩余≤0.5秒：认为已结束，可以计算主预测
+    state.gcd.active = false
+    state.gcd.remains = 0
+else
+    -- GCD剩余>0.5秒：减去提前量后显示
+    state.gcd.active = true
+    state.gcd.remains = gcdRemains - 0.5
+end
+```
+
+**效果示例**：
+```
+玩家释放撕裂 → GCD 1.0秒
+  0.0s: GCD剩余 1.0s → 主预测=无 (GCD中)
+  0.3s: GCD剩余 0.7s → 主预测=无 (GCD中)
+  0.5s: GCD剩余 0.5s → 主预测=撕碎 ✓ (提前显示！)
+  0.7s: GCD剩余 0.3s → 主预测=撕碎 ✓
+  1.0s: GCD结束     → 主预测=撕碎 ✓
+```
+
+**优势**：
+- 减少玩家反应延迟，提前0.5秒看到下一步推荐
+- 更流畅的技能衔接体验
+- 保持预测准确性（0.5秒是合理的人类反应窗口）
 
 ### 日志类别
 

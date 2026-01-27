@@ -19,6 +19,9 @@ Config.UPDATE_INTERVAL_COMBAT = 0.05    -- 战斗中：50ms（20 FPS）- 快速�
 Config.UPDATE_INTERVAL_IDLE = 0.2       -- 非战斗：200ms（5 FPS）- 节省性能
 Config.THROTTLE_INTERVAL = 0.016  -- 事件节流间隔（16ms ≈ 60 FPS）
 
+-- GCD预测提前量：让预测系统提前计算下一个动作
+Config.GCD_ANTICIPATION = 0.5  -- 当GCD剩余≤0.5秒时，认为GCD已结束（提前0.5秒预测）
+
 -- 优先级事件列表（立即处理，不节流）
 Config.PRIORITY_EVENTS = {
     "SPELL_CAST_SUCCESS",
