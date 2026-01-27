@@ -4,6 +4,7 @@ ns.APLExecutor = APLExecutor
 
 -- 缓存上次执行的动作，用于减少日志记录
 local lastAction = nil
+local lastVirtualAction = nil  -- 虚拟预测的独立缓存
 
 --- Iterates through the APL and returns the first action whose condition is met.
 -- @param apl table: The APL list (array of entries). Each entry should have { action = "name", condition = function(state) ... end }
@@ -19,6 +20,10 @@ function APLExecutor.Process(apl, state)
         ns.Logger:Warn("APL", "APL is empty!")
         return nil
     end
+    
+    -- 判断是否为虚拟预测模式
+    local isVirtual = state and state.isVirtualState
+    local lastActionCache = isVirtual and lastVirtualAction or lastAction
 
     for i, entry in ipairs(apl) do
         local allowed = true
@@ -30,6 +35,7 @@ function APLExecutor.Process(apl, state)
             if type(entry.condition) == "function" then
                 -- Safely execute
                 local success, result = pcall(entry.condition, state)
+                
                 if success then
                     allowed = result
                 else
@@ -58,9 +64,6 @@ function APLExecutor.Process(apl, state)
                      -- Check consistency
                      if spellState.ready == false then
                          ready = false
-                         -- 详细记录为什么不可用
-                         ns.Logger:Log("APL", string.format("[%d] %s: 条件通过但技能不可用 (CD:%.1f, usable:%s)", 
-                             i, entry.action, spellState.cooldown_remains or 0, tostring(spellState.usable)))
                      end
                  else
                      -- 错误必须记录
@@ -70,18 +73,32 @@ function APLExecutor.Process(apl, state)
              end
 
              if ready then
-                 -- 只有当动作发生变化时才记录
-                 if lastAction ~= entry.action then
-                     ns.Logger:Log("APL", string.format("切换技能: %s -> %s", lastAction or "None", entry.action))
-                     lastAction = entry.action
+                 -- 只有当动作发生变化时才记录，并输出前3个技能的状态
+                 if lastActionCache ~= entry.action then
+                     ns.Logger:Log("APL", string.format("切换技能: %s -> %s", lastActionCache or "None", entry.action))
+                     
+                     -- 输出前3个技能的状态（帮助理解为什么选择了这个技能）
+                     for debugIdx = 1, math.min(3, #apl) do
+                         local debugEntry = apl[debugIdx]
+                         local debugState = state.spell[debugEntry.action]
+                         if debugIdx == i then
+                             ns.Logger:Log("APL", string.format("  [%d] %s: ✓ 选中", debugIdx, debugEntry.action))
+                         elseif debugState and debugState.ready == false then
+                             ns.Logger:Log("APL", string.format("  [%d] %s: CD %.1fs", debugIdx, debugEntry.action, debugState.cooldown_remains or 0))
+                         else
+                             ns.Logger:Log("APL", string.format("  [%d] %s: 条件不满足", debugIdx, debugEntry.action))
+                         end
+                     end
+                     
+                     -- 更新对应的缓存
+                     if isVirtual then
+                         lastVirtualAction = entry.action
+                     else
+                         lastAction = entry.action
+                     end
                  end
                  return entry.action
              end
-        else
-            -- 条件不满足时也记录（仅前3个）
-            if i <= 3 then
-                ns.Logger:Log("APL", string.format("[%d] %s: 条件不满足", i, entry.action or "Unknown"))
-            end
         end
     end
     

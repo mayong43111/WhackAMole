@@ -116,22 +116,44 @@ local mt_spell = {
             end
         end
 
-        -- 检查施法状态
-        local isCasting, castType = IsSpellCasting(name or req)
+        -- 检查施法状态（虚拟预测时跳过，因为查询的是真实游戏状态）
+        local isCasting, castType = false, nil
+        if not state.isVirtualState then
+            isCasting, castType = IsSpellCasting(name or req)
+        end
 
-        -- 检查冷却
-        local start, duration, enabled = GetSpellCooldown(req)
+        -- 检查冷却：优先使用虚拟 CD（用于次预测）
         local on_cooldown = false
         local remains = 0
         
-        if start and start > 0 and duration > GCD_THRESHOLD then
-            local readyAt = start + duration
-            remains = math.max(0, readyAt - state.now)
-            if remains > 0 then on_cooldown = true end
+        -- 从 ActionMap 反查 SimC action 名称
+        local action = nil
+        if ns.ActionMap then
+            for k, v in pairs(ns.ActionMap) do
+                if v == id then
+                    action = k
+                    break
+                end
+            end
         end
         
-        -- 技能就绪：可用或仅缺资源，且不在CD，且未施法
-        local ready = (not on_cooldown) and (usable or nomana) and (not isCasting)
+        -- 优先使用虚拟 CD
+        if action and state.virtualCooldowns and state.virtualCooldowns[action] then
+            local vcd = state.virtualCooldowns[action]
+            remains = vcd.remains
+            on_cooldown = remains > 0
+        else
+            -- 回退到 WoW API 查询
+            local start, duration, enabled = GetSpellCooldown(req)
+            if start and start > 0 and duration > GCD_THRESHOLD then
+                local readyAt = start + duration
+                remains = math.max(0, readyAt - state.now)
+                if remains > 0 then on_cooldown = true end
+            end
+        end
+        
+        -- 技能就绪：可用或仅缺资源，且不在CD，且GCD已过，且未施法
+        local ready = (not on_cooldown) and (not state.gcd.active) and (usable or nomana) and (not isCasting)
         
         return {
             usable = usable,
@@ -202,6 +224,12 @@ state.gcd = {
 
 state.active_enemies = 1
 
+-- 虚拟冷却跟踪（用于次预测）
+state.virtualCooldowns = {}
+
+-- 虚拟预测模式标志（用于跳过真实游戏状态查询）
+state.isVirtualState = false
+
 -- Buff/Debuff 元表需要访问 state 对象
 mt_buff._state = state
 mt_debuff._state = state
@@ -220,6 +248,48 @@ end
 -- @param seconds 推进的秒数
 function state.advance(seconds)
     StateAdvance.Advance(state, seconds)
+end
+
+--- 设置虚拟冷却（用于效果模拟）
+-- @param action 技能名称（SimC格式）
+-- @param duration 冷却时长（秒）
+function state:SetCooldown(action, duration)
+    if not action or not duration then return end
+    self.virtualCooldowns[action] = {
+        remains = duration,
+        duration = duration
+    }
+end
+
+--- 触发 GCD（用于效果模拟）
+-- @param duration GCD 时长（秒），默认 1.5
+function state:TriggerGCD(duration)
+    self.gcd.active = true
+    self.gcd.remains = duration or 1.5
+    self.gcd.duration = duration or 1.5
+end
+
+--- 添加 Buff（用于效果模拟）
+-- @param name Buff 名称或 spellID
+-- @param duration 持续时间（秒）
+function state:AddBuff(name, duration)
+    if not name then return end
+    AuraTracking.AddVirtualBuff(name, duration, self.now)
+end
+
+--- 消耗 Buff（减少层数或移除）
+-- @param name Buff 名称或 spellID
+function state:ConsumeBuff(name)
+    if not name then return end
+    AuraTracking.ConsumeVirtualBuff(name)
+end
+
+--- 添加 Debuff（用于效果模拟）
+-- @param name Debuff 名称或 spellID
+-- @param duration 持续时间（秒）
+function state:AddDebuff(name, duration)
+    if not name then return end
+    AuraTracking.AddVirtualDebuff(name, duration, self.now)
 end
 
 --- 获取缓存统计信息

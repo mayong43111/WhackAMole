@@ -24,13 +24,13 @@ ns.ProfileManager:RegisterPreset({
     },
 
     apl = {
-        -- 爆发技能：CD好立即使用
-        "actions+=/icy_veins",                                   -- 冰冷血脉：大幅提升施法速度
-        "actions+=/mirror_image",                                -- 镜像：威胁转移+额外DPS
-        
         -- 触发消耗：优先级最高
         "actions+=/frostfire_bolt,if=buff.brain_freeze.up",     -- 霜火之箭：思维冷却触发(8/15%)，瞬发+伤害提高15/30%+不消耗法力
         "actions+=/ice_lance,if=buff.fingers_of_frost.up",      -- 冰枪术：寒冰指触发(10/20%)，对冻结目标五倍伤害
+
+        -- 爆发技能：战斗5秒后开启
+        "actions+=/icy_veins,if=player.combat_time>=5",          -- 冰冷血脉：大幅提升施法速度
+        "actions+=/mirror_image,if=player.combat_time>=5",       -- 镜像：威胁转移+额外DPS
         
         -- 移动填充：保持输出
         "actions+=/fire_blast,if=player.moving",                -- 火焰冲击：移动时优先使用(有CD)

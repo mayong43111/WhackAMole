@@ -41,26 +41,24 @@ function LogTab:Create(container)
         -- 反向遍历（最新在上）
         for i = #ns.Logger.logs.lines, startIdx, -1 do
             local log = ns.Logger.logs.lines[i]
-            
-            -- 检查过滤器
-            if ns.Logger.logs.filters[log.category] then
-                -- 根据分类设置颜色
-                local color = "|cffffffff"
-                if log.category == "Error" then
-                    color = "|cffff0000"
-                elseif log.category == "Warn" then
-                    color = "|cffffa500"
-                elseif log.category == "System" then
-                    color = "|cff00ff00"
-                elseif log.category == "APL" then
-                    color = "|cff00ffff"
-                elseif log.category == "State" then
-                    color = "|cffffcc00"
-                end
-                
-                table.insert(lines, string.format("%s[%s] [%s] %s|r",
-                    color, log.timestamp, log.category, log.message))
+            -- 根据分类设置颜色
+            local color = "|cffffffff"
+            if log.category == "Error" then
+                color = "|cffff0000"
+            elseif log.category == "Warn" then
+                color = "|cffffa500"
+            elseif log.category == "System" then
+                color = "|cff00ff00"
+            elseif log.category == "APL" then
+                color = "|cff00ffff"
+            elseif log.category == "State" then
+                color = "|cffffcc00"
+            elseif log.category == "Predict" then
+                color = "|cffff00ff"  -- 紫色
             end
+            
+            table.insert(lines, string.format("%s[%s] [%s] %s|r",
+                color, log.timestamp, log.category, log.message))
         end
         
         logBox:SetText(table.concat(lines, "\n"))

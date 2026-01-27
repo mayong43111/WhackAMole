@@ -6,6 +6,9 @@ local _, ns = ...
 -- e.g. ["execute"] = 5308
 ns.ActionMap = {}
 
+-- Forward mapping: spellID -> action_name（用于效果模拟）
+ns.ActionMap.spellIDToAction = {}
+
 -- Utility to build the map from Constants
 function ns.BuildActionMap()
     if not ns.Spells then return end
@@ -29,24 +32,14 @@ function ns.BuildActionMap()
         if snake ~= lowerKey then
              ns.ActionMap[snake] = id
         end
+        
+        -- 添加反向映射：spellID -> snake_case_action
+        ns.ActionMap.spellIDToAction[id] = snake
     end
 
+    -- 从 Constants.lua 的 ns.Spells 构建 ActionMap
     for id, data in pairs(ns.Spells) do
         addMapping(data.key, id)
-    end
-    
-    -- 解决技术债务：自动从职业模块加载 spells
-    -- 整合职业模块定义的技能到全局 ActionMap
-    if ns.Classes then
-        for className, classData in pairs(ns.Classes) do
-            for specID, specData in pairs(classData) do
-                if type(specData) == "table" and specData.spells then
-                    for id, data in pairs(specData.spells) do
-                        addMapping(data.key, id)
-                    end
-                end
-            end
-        end
     end
 end
 

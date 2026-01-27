@@ -38,21 +38,19 @@ function ProfileLoader.InitializeProfile(addon, currentSpec)
     end
 end
 
---- 加载职业技能数据
+--- 验证职业专精数据
 -- @param playerClass 职业名称
 -- @param currentSpec 当前专精ID
 function ProfileLoader.LoadClassSpells(playerClass, currentSpec)
+    -- 验证职业专精配置是否存在（仅用于日志）
     if ns.Classes and ns.Classes[playerClass] and ns.Classes[playerClass][currentSpec] then
         local specModule = ns.Classes[playerClass][currentSpec]
-        ns.Spells = specModule.spells
-        
-        -- 重建 ActionMap
-        if ns.BuildActionMap then
-            ns.BuildActionMap()
-        end
+        ns.Logger:System("Class", string.format("已加载 %s 专精 %d: %s", playerClass, currentSpec, specModule.name or "未知"))
     else
-        ns.Logger:System("Warning: No spell data for class " .. playerClass .. " spec " .. tostring(currentSpec))
+        ns.Logger:System("Warning", string.format("未找到 %s 专精 %d 的配置", playerClass, tostring(currentSpec)))
     end
+    
+    -- 注意：不再覆盖 ns.Spells，统一使用 Constants.lua 中的全局定义
 end
 
 --- 选择合适的配置文件

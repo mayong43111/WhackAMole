@@ -96,6 +96,11 @@ local function ResetCooldowns(state)
         state.gcd.active = false
         state.gcd.remains = 0
     end
+    
+    -- 清空虚拟冷却（恢复到真实游戏状态）
+    if state.virtualCooldowns then
+        wipe(state.virtualCooldowns)
+    end
 end
 
 --- 重置目标状态（更新目标生命、距离和预测死亡时间）

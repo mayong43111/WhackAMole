@@ -152,18 +152,30 @@ local function ApplyGlow(btn, isPrimary, isSecondary)
         LCG.PixelGlow_Stop(btn)
         LCG.AutoCastGlow_Stop(btn) 
         local color = {1, 0.8, 0, 1}
-        LCG.PixelGlow_Start(btn, color, 8, 0.125, nil, 2)
+        LCG.PixelGlow_Start(btn, color, 8, -0.25, nil, 2)
         
     elseif isSecondary then
-        -- Secondary: Blue pixel glow
+        -- Secondary: Static border overlay (静态边框)
         LCG.PixelGlow_Stop(btn)
         LCG.AutoCastGlow_Stop(btn)
-        local color = {0.3, 0.6, 1, 1}
-        LCG.PixelGlow_Start(btn, color, 6, 0.08, nil, 1.5)
+        
+        -- 创建静态边框（如果不存在）
+        if not btn.secondaryBorder then
+            btn.secondaryBorder = btn:CreateTexture(nil, "OVERLAY")
+            btn.secondaryBorder:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+            btn.secondaryBorder:SetBlendMode("ADD")
+            btn.secondaryBorder:SetPoint("TOPLEFT", btn, "TOPLEFT", -12, 12)
+            btn.secondaryBorder:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 12, -12)
+        end
+        btn.secondaryBorder:SetVertexColor(0.3, 0.7, 1, 0.8)
+        btn.secondaryBorder:Show()
     else
         -- Clear all glows
         LCG.PixelGlow_Stop(btn)
         LCG.AutoCastGlow_Stop(btn)
+        if btn.secondaryBorder then
+            btn.secondaryBorder:Hide()
+        end
     end
 end
 

@@ -36,6 +36,19 @@ local function AdvanceGCD(state, seconds)
     end
 end
 
+--- 推进虚拟技能冷却时间
+-- @param state 状态对象
+-- @param seconds 推进的时间（秒）
+local function AdvanceVirtualCooldowns(state, seconds)
+    if not state.virtualCooldowns then return end
+    
+    for action, cdInfo in pairs(state.virtualCooldowns) do
+        if cdInfo.remains > 0 then
+            cdInfo.remains = math.max(0, cdInfo.remains - seconds)
+        end
+    end
+end
+
 --- 推进战斗时间（更新持续战斗时长）
 -- @param state 状态对象
 -- @param combat_start_time 战斗开始时间
@@ -72,6 +85,9 @@ local function Advance(state, seconds, combat_start_time)
     -- 推进全局冷却时间
     AdvanceGCD(state, seconds)
     
+    -- 推进虚拟技能冷却
+    AdvanceVirtualCooldowns(state, seconds)
+    
     -- 调用自定义钩子（允许职业模块注入额外逻辑）
     if ns.CallHook then
         ns.CallHook("advance", seconds)
@@ -90,4 +106,5 @@ ns.StateAdvance = {
     AdvanceAuras = AdvanceAuras,
     AdvanceGCD = AdvanceGCD,
     AdvanceCombatTime = AdvanceCombatTime,
+    AdvanceVirtualCooldowns = AdvanceVirtualCooldowns,
 }

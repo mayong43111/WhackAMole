@@ -26,10 +26,15 @@ Classes\Paladin.lua
 Classes\DeathKnight.lua
 Classes\Mage.lua
 Classes\Druid.lua
+Classes\Rogue.lua
+
+# Data
+Data\SpellDatabase.lua
 
 # Engine
 Engine\SimCParser.lua
 Engine\APLExecutor.lua
+Engine\EffectSimulator.lua
 # State Module (Phase 1 Refactored + Responsibility Optimized)
 # Load order critical: Config → Cache → Resources → Init → AuraTracking → StateReset/Advance → State
 Engine\State\Config.lua
