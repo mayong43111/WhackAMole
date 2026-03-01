@@ -226,6 +226,12 @@ ns.Spells = {
     [53908]  = { key = "PotionOfSpeed" },                                          -- 急速药水 (Buff)
 }
 
+-- 自定义动作名映射（用于私服魔改技能，ActionMap 无法通过固定 SpellID 覆盖）
+-- key: APL action 名称, value: 游戏内技能名称（本地化）
+ns.CustomActionNames = ns.CustomActionNames or {
+    death_mark_titan = "死亡印记"
+}
+
 -- ----------------------------------------------------------------------------
 -- Reverse Lookup (Name -> ID)
 -- ----------------------------------------------------------------------------

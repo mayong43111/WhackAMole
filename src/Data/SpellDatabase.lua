@@ -71,6 +71,12 @@ local SPELL_DATA = {
         castTime = 0,
         gcd = 1.0
     },
+    death_mark_titan = {
+        cost = { comboPoints = 1 },
+        cooldown = 8,
+        castTime = 0,
+        gcd = 1.0
+    },
     premeditation = {
         gain = { comboPoints = 2 },
         cooldown = 20,

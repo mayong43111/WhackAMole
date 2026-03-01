@@ -171,6 +171,11 @@ local mt_spell = {
             if ns.ActionMap and ns.ActionMap[k] then
                 return t(ns.ActionMap[k])
             end
+
+            -- 私服魔改技能：通过自定义动作名映射到本地化技能名
+            if ns.CustomActionNames and ns.CustomActionNames[k] then
+                return t(ns.CustomActionNames[k])
+            end
             
             -- 返回默认值（技能不可用）
             return {

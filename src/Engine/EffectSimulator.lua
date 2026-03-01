@@ -36,6 +36,14 @@ function EffectSimulator.SimulateSpell(action, state)
     if class and Classes and Classes[class] and Classes[class].SimulateSpecialEffect then
         Classes[class]:SimulateSpecialEffect(action, state)
     end
+
+    -- 泰坦服敏锐：死亡印记与割裂联动（简化模拟）
+    -- 规则：若目标已存在割裂，则死亡印记施放后将割裂刷新为满持续时间
+    if action == "death_mark_titan" and state and state.debuff and state.debuff.rupture and state.debuff.rupture.up then
+        if state.AddDebuff then
+            state:AddDebuff("rupture", 16)
+        end
+    end
 end
 
 --- 应用通用效果（数据驱动）
