@@ -90,4 +90,6 @@ Presets\Druid_Balance.lua
 Presets\Druid_Feral.lua
 Presets\DeathKnight_Frost.lua
 Presets\DeathKnight_Unholy.lua
+Presets\Rogue_Subtlety_Support.lua
+Presets\Rogue_Subtlety_DPS.lua
 

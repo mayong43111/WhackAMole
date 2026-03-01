@@ -6,6 +6,44 @@ local _, ns = ...
 ns.UI = ns.UI or {}
 ns.UI.Grid = ns.UI.Grid or {}
 
+local function ResolveHighestKnownSpellByAction(action)
+    if not action or not ns.ActionMap then
+        return nil
+    end
+
+    local mappedSpellID = ns.ActionMap[action]
+    if not mappedSpellID then
+        return nil
+    end
+
+    local baseSpellName = GetSpellInfo(mappedSpellID)
+    if not baseSpellName then
+        return nil
+    end
+
+    local bestName = nil
+    local bestRank = -1
+    local index = 1
+    while true do
+        local spellName, spellRank = GetSpellBookItemName(index, BOOKTYPE_SPELL)
+        if not spellName then
+            break
+        end
+
+        if spellName == baseSpellName then
+            local rankNum = tonumber((spellRank or ""):match("(%d+)")) or 0
+            if rankNum >= bestRank then
+                bestRank = rankNum
+                bestName = spellName
+            end
+        end
+
+        index = index + 1
+    end
+
+    return bestName
+end
+
 -- Create individual slot button
 local function CreateSlotButton(slotIndex, slotDef, container, iconSize, cols, rows, spacing)
     local state = ns.UI.GridState
@@ -207,10 +245,123 @@ function ns.UI.Grid:RestoreAssignments()
     end
 end
 
+function ns.UI.Grid:AutoFillSlotsWithHighestRank()
+    if InCombatLockdown() then
+        ns.Logger:System("WhackAMole: Cannot auto-fill spells in combat!")
+        return
+    end
+
+    local state = ns.UI.GridState
+    local slotIndexes = {}
+    for slotIndex in pairs(state.slots) do
+        table.insert(slotIndexes, slotIndex)
+    end
+    table.sort(slotIndexes)
+
+    local filledCount = 0
+    local skippedCount = 0
+
+    for _, slotIndex in ipairs(slotIndexes) do
+        local btn = state.slots[slotIndex]
+        if btn and btn.action then
+            local highestSpellName = ResolveHighestKnownSpellByAction(btn.action)
+            if highestSpellName then
+                self:UpdateButtonSpell(btn, highestSpellName)
+                filledCount = filledCount + 1
+            else
+                skippedCount = skippedCount + 1
+            end
+        else
+            skippedCount = skippedCount + 1
+        end
+    end
+
+    ns.Logger:System(string.format("WhackAMole: 自动填充完成（已填充 %d，跳过 %d）。", filledCount, skippedCount))
+end
+
+function ns.UI.Grid:GetCurrentPresetName()
+    local addon = ns.WhackAMole
+    if addon and addon.currentProfile and addon.currentProfile.meta and addon.currentProfile.meta.name then
+        return addon.currentProfile.meta.name
+    end
+
+    local activeID = addon and addon.db and addon.db.char and addon.db.char.activeProfileID
+    if activeID and ns.ProfileManager and ns.ProfileManager.GetProfile then
+        local profile = ns.ProfileManager:GetProfile(activeID)
+        if profile and profile.meta and profile.meta.name then
+            return profile.meta.name
+        end
+    end
+
+    return "未选择"
+end
+
+function ns.UI.Grid:QuickSwitchPreset()
+    if InCombatLockdown() then
+        ns.Logger:System("WhackAMole: Cannot switch preset in combat!")
+        return
+    end
+
+    local addon = ns.WhackAMole
+    if not (addon and addon.db and addon.db.char and ns.ProfileManager) then
+        ns.Logger:System("WhackAMole: 配置系统未就绪，无法切换。")
+        return
+    end
+
+    local _, playerClass = UnitClass("player")
+    local currentSpec = nil
+    if ns.SpecDetection and ns.SpecDetection.GetSpecID then
+        currentSpec = ns.SpecDetection:GetSpecID(false)
+    end
+
+    local candidates = ns.ProfileManager:GetProfilesForClass(playerClass) or {}
+    local selectable = {}
+    for _, cand in ipairs(candidates) do
+        local profile = cand.profile
+        local spec = profile and profile.meta and profile.meta.spec
+        if currentSpec == nil or spec == nil or spec == currentSpec then
+            table.insert(selectable, cand)
+        end
+    end
+
+    if #selectable == 0 then
+        ns.Logger:System("WhackAMole: 未找到可切换的配置。")
+        return
+    end
+
+    table.sort(selectable, function(a, b)
+        return (a.name or "") < (b.name or "")
+    end)
+
+    local currentID = addon.db.char.activeProfileID
+    local currentIndex = 0
+    for i, cand in ipairs(selectable) do
+        if cand.id == currentID then
+            currentIndex = i
+            break
+        end
+    end
+
+    local nextIndex = (currentIndex % #selectable) + 1
+    local nextCandidate = selectable[nextIndex]
+    if not nextCandidate or not nextCandidate.profile then
+        ns.Logger:System("WhackAMole: 切换失败，目标配置无效。")
+        return
+    end
+
+    addon.db.char.activeProfileID = nextCandidate.id
+    addon:SwitchProfile(nextCandidate.profile)
+
+    local nextName = nextCandidate.profile.meta and nextCandidate.profile.meta.name or "未知配置"
+    ns.Logger:System("WhackAMole: 已切换到配置 - " .. nextName)
+end
+
 -- Context Menu
 function ns.UI.Grid:OpenContextMenu(anchor)
+    local currentPresetName = self:GetCurrentPresetName()
     local menu = {
         { text = "WhackAMole 选项", isTitle = true, notCheckable = true },
+        { text = "当前 Preset: " .. currentPresetName, notCheckable = true, disabled = true },
         { 
             text = ns.UI.GridState.locked and "解锁框架" or "锁定框架",
             func = function() 
@@ -220,8 +371,18 @@ function ns.UI.Grid:OpenContextMenu(anchor)
             notCheckable = true
         },
         {
+            text = "快速切换 Preset",
+            func = function() self:QuickSwitchPreset() end,
+            notCheckable = true
+        },
+        {
             text = "清空动作条",
             func = function() self:ClearAllAssignments() end,
+            notCheckable = true
+        },
+        {
+            text = "自动填充（最高等级）",
+            func = function() self:AutoFillSlotsWithHighestRank() end,
             notCheckable = true
         },
         { 

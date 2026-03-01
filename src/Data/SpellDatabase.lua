@@ -36,6 +36,47 @@ local SPELL_DATA = {
         castTime = 0,  -- 瞬发
         gcd = 1.0
     },
+    hemorrhage = {
+        gain = { comboPoints = 1 },
+        cost = { energy = 35 },
+        castTime = 0,
+        gcd = 1.0
+    },
+    rupture = {
+        debuff = { name = "rupture", duration = 16 },
+        cost = { comboPoints = 5 },
+        castTime = 0,
+        gcd = 1.0
+    },
+    expose_armor = {
+        debuff = { name = "expose_armor", duration = 30 },
+        cost = { comboPoints = 1 },
+        castTime = 0,
+        gcd = 1.0
+    },
+    ambush = {
+        gain = { comboPoints = 2 },
+        cost = { energy = 60 },
+        castTime = 0,
+        gcd = 1.0
+    },
+    shadow_dance = {
+        buff = { name = "shadow_dance", duration = 8 },
+        cooldown = 60,
+        castTime = 0,
+        gcd = 1.0
+    },
+    shadowstep = {
+        cooldown = 30,
+        castTime = 0,
+        gcd = 1.0
+    },
+    premeditation = {
+        gain = { comboPoints = 2 },
+        cooldown = 20,
+        castTime = 0,
+        gcd = 1.0
+    },
     
     -- =========================================================================
     -- 法师技能 (Mage)

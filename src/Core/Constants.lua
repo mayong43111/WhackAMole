@@ -128,7 +128,16 @@ ns.Spells = {
     [408]    = { key = "KidneyShot",          sound = "KidneyShot.ogg" },          -- 肾击
     [1766]   = { key = "Kick",                sound = "Kick.ogg" },                -- 脚踢
     [51713]  = { key = "ShadowDance",         sound = "ShadowDance.ogg" },         -- 暗影之舞
-    [5171]   = { key = "SliceandDice",        sound = "SliceandDice.ogg" },        -- 切割
+    [5171]   = { key = "SliceAndDice",        sound = "SliceandDice.ogg" },        -- 切割
+    [48660]  = { key = "Hemorrhage",          sound = "Hemorrhage.ogg" },          -- 出血
+    [48672]  = { key = "Rupture",             sound = "Rupture.ogg" },             -- 割裂
+    [48668]  = { key = "Eviscerate",          sound = "Eviscerate.ogg" },          -- 刺骨
+    [48669]  = { key = "ExposeArmor",         sound = "ExposeArmor.ogg" },         -- 破甲
+    [48691]  = { key = "Ambush",              sound = "Ambush.ogg" },              -- 伏击
+    [36554]  = { key = "Shadowstep",          sound = "Shadowstep.ogg" },          -- 暗影步
+    [14183]  = { key = "Premeditation",       sound = "Premeditation.ogg" },       -- 预谋
+    [14185]  = { key = "Preparation",         sound = "Preparation.ogg" },         -- 伺机待发
+    [48676]  = { key = "Garrote",             sound = "Garrote.ogg" },             -- 锁喉
 
     -- ---------------------------------------------------------------
     -- DRUID (德鲁伊)
