@@ -135,9 +135,10 @@ ns.Spells = {
     [48669]  = { key = "ExposeArmor",         sound = "ExposeArmor.ogg" },         -- 破甲
     [48691]  = { key = "Ambush",              sound = "Ambush.ogg" },              -- 伏击
     [36554]  = { key = "Shadowstep",          sound = "Shadowstep.ogg" },          -- 暗影步
-    [14183]  = { key = "Premeditation",       sound = "Premeditation.ogg" },       -- 预谋
-    [14185]  = { key = "Preparation",         sound = "Preparation.ogg" },         -- 伺机待发
-    [48676]  = { key = "Garrote",             sound = "Garrote.ogg" },             -- 锁喉
+    [14183]   = { key = "Premeditation",       sound = "Premeditation.ogg" },       -- 预谋
+    [14185]   = { key = "Preparation",         sound = "Preparation.ogg" },         -- 伺机待发
+    [48676]   = { key = "Garrote",             sound = "Garrote.ogg" },             -- 锁喉
+    [1284398] = { key = "DeathMarkTitan",      sound = "DeathMark.ogg" },           -- 死亡印记（泰坦服魔改技能）
 
     -- ---------------------------------------------------------------
     -- DRUID (德鲁伊)
@@ -224,12 +225,6 @@ ns.Spells = {
     -- CONSUMABLES (消耗品)
     -- ---------------------------------------------------------------
     [53908]  = { key = "PotionOfSpeed" },                                          -- 急速药水 (Buff)
-}
-
--- 自定义动作名映射（用于私服魔改技能，ActionMap 无法通过固定 SpellID 覆盖）
--- key: APL action 名称, value: 游戏内技能名称（本地化）
-ns.CustomActionNames = ns.CustomActionNames or {
-    death_mark_titan = "死亡印记"
 }
 
 -- ----------------------------------------------------------------------------

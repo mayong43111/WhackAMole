@@ -27,19 +27,21 @@ ns.ProfileManager:RegisterPreset({
     },
 
     apl = {
-        -- 常驻维护（统一版）
-        "actions+=/slice_and_dice,if=(!buff.slice_and_dice.up|buff.slice_and_dice.remains<3)&combo_points>=1", -- 切割：攻速核心Buff，未覆盖或<3秒时立刻刷新
-        "actions+=/death_mark_titan,if=cooldown.death_mark_titan.remains<=0&combo_points>=1",                  -- 死亡印记：重制后核心终结技，尽量按CD施放
-        "actions+=/expose_armor,if=(!debuff.expose_armor.up|debuff.expose_armor.remains<4)&combo_points>=1",  -- 破甲：统一版常驻维护
-        "actions+=/rupture,if=!debuff.rupture.up&combo_points>=5",                                               -- 割裂：条件维护，仅在缺失时补一次（死亡印记可刷新）
+        -- 常驻维护（最高优先级，但仅在低星时）
+        "actions+=/slice_and_dice,if=(!buff.slice_and_dice.up|buff.slice_and_dice.remains<3)&combo_points>=1&combo_points<5", -- 切割：1-4星时刷新，不抢占5星
+        "actions+=/expose_armor,if=!debuff.expose_armor.up&combo_points>=1&combo_points<5",                                   -- 破甲：仅低星时补，不抢占5星
 
-        -- 爆发窗口：高能量开舞
-        "actions+=/premeditation,if=cooldown.shadow_dance.remains<2&combo_points<=3",                         -- 预谋：影舞前预装连击点，避免开窗后前几拍浪费在低收益构建
-        "actions+=/shadow_dance,if=energy>=70",                                                                 -- 暗影之舞：能量>=70再开，确保窗口内可连续打伏击/终结
-        "actions+=/ambush,if=buff.shadow_dance.up",                                                            -- 伏击：影舞期间最高收益构建技，优先吃满影舞时间
+        -- 爆发窗口（最高优先级）
+        "actions+=/premeditation,if=combo_points<=2",                                                          -- 预谋：低星时直接用
+        "actions+=/shadow_dance,if=cooldown.shadow_dance.remains<=0",                                          -- 暗影之舞：CD好了就用
+        "actions+=/ambush",                                                                                    -- 伏击：爆发期高优先级
 
-        -- 终结与填充
-        "actions+=/eviscerate,if=combo_points>=5&buff.slice_and_dice.remains>4&debuff.rupture.remains>2",    -- 刺骨：5星终结；在维护安全时转化伤害
-        "actions+=/hemorrhage,if=combo_points<5"                                                               -- 出血：默认填充构建技，负责平稳期连击点生成
+        -- 终结技能优先级（刺骨为主，死亡印记控制频率）
+        "actions+=/eviscerate,if=combo_points>=2",                                                             -- 刺骨：降至2星即可使用，提高频率
+        "actions+=/death_mark_titan,if=cooldown.death_mark_titan.remains<=0&combo_points==1&energy>=50",      -- 死亡印记：1星+能量门槛，控制使用频率
+        "actions+=/rupture,if=!debuff.rupture.up&combo_points>=2&combo_points<3",                             -- 割裂：限制为2星
+        
+        -- 填充
+        "actions+=/hemorrhage,if=combo_points<5"                                                               -- 出血：默认填充构建技
     }
 })
